@@ -1,0 +1,58 @@
+RESUME_SECTION_HIGHLIGHT:
+  highlight: one highlight
+  relevance: relevance of the bullet point
+
+RESUME_SECTION_HIGHLIGHTER_OUTPUT:
+  plan: itemized <Plan>
+  additional_steps: itemized <Additional Steps>
+  work: itemized <Work>
+  final_answer: itemized <Final Answer> in the correct format
+
+RESUME_SKILLS:
+  technical_skills: An itemized list of technical skills
+  non_technical_skills: An itemized list of non-technical skills
+
+RESUME_SKILLS_MATCHER_OUTPUT:
+  plan: itemized <Plan>
+  additional_steps: itemized <Additional Steps>
+  work: itemized <Work>
+  final_answer: <Final Answer> in the correct format
+
+RESUME_SUMMARIZER_OUTPUT:
+  plan: itemized <Plan>
+  additional_steps: itemized <Additional Steps>
+  work: itemized <Work>
+  final_answer: <Final Answer> in the correct format
+
+RESUME_IMPROVEMENTS:
+  improvements: itemized list of suggested improvements
+
+RESUME_IMPROVER_OUTPUT:
+  plan: itemized <Plan>
+  additional_steps: itemized <Additional Steps>
+  work: itemized <Work>
+  final_answer: itemized <Final Answer> in the correct format
+
+JOB_DESCRIPTION:
+  company: >
+    Name of the company that has the job opening
+  job_title: >
+    Job title
+  team: Name of the team within the company. Team name should be null if it's not known.
+  job_summary: >
+    Brief summary of the job, not exceeding 100 words
+  salary: >
+    Salary amount or range. Salary should be null if it's not known.
+  duties: >
+    The role, responsibilities and duties of the job as an itemized list, not exceeding 500 words
+  qualifications: The qualifications, skills, and experience required for the job as an itemized list, not exceeding 500 words
+  ats_keywords: >
+    Keywords that may be triggered by Applicant Tracking Systems (ATS), such as: Python, Cloud Computing, Agile, Data analytics, product management, cross-function collaboration, etc...
+  is_fully_remote: >
+    Does the job have an option to work fully (100%) remotely? Hybrid or partial remote is marked as `False`. Use `None` if the answer is not known.
+
+JOB_SKILLS:
+  technical_skills: >
+    An itemized list of technical skills, including programming languages, technologies, and tools.
+  non_technical_skills: >
+    An itemized list of non-technical Soft skills.
