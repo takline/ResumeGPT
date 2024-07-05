@@ -22,7 +22,7 @@ pip install -r requirements.txt
 Users provide ResumeGPT with their resume (`./data/sample_resume.yaml`), their personal information (`./config/config.ini`), and a URL of a job posting. Once they do that, they use the sample code below to have ResumeGPT create a tailored resume:
 
 ```python
-url = "https://careers.mastercard.com/us/en/job/MASRUSR222161EXTERNALENUS/Director-Product-Management-Advanced-Analytics-AI-Solutions?utm_medium=phenom-feeds&source=LINKEDIN&utm_source=linkedin"
+url = "https://[link to a job posting]"
 resume_improver = ResumeGPT.services.ResumeImprover(url)
 resume_improver.create_draft_tailored_resume()
 ```
