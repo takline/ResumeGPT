@@ -19,7 +19,9 @@ pip install -r requirements.txt
 
 ## Usage
 
-Users provide ResumeGPT with their resume (`./data/sample_resume.yaml`), their personal information (`./config/config.ini`), and a URL of a job posting. Once they do that, they use the sample code below to have ResumeGPT create a tailored resume:
+ - Add your resume to `./data/sample_resume.yaml`
+ - Update `./config/config.ini` with your name and inf
+ - Provide ResumeGPT with the link to a job posting and it will tailot your resume to the job:
 
 ```python
 url = "https://[link to a job posting]"
@@ -27,4 +29,4 @@ resume_improver = ResumeGPT.services.ResumeImprover(url)
 resume_improver.create_draft_tailored_resume()
 ```
 
-ResumeGPT then creates a new resume YAML file in a new folder named after the job posting with a YAML key/value: `editing: true`. ResumeGPT will wait for users to verify the resume updates and allow them to make their own updates until users set `editing=false`. Then ResumeGPT will create a PDF version of their resume.
+ResumeGPT then creates a new resume YAML file in a new folder named after the job posting with a YAML key/value: `editing: true`. ResumeGPT will wait for you to verify the updates + make your own updates until you set `editing=false` in the yaml file. Then ResumeGPT will create a PDF version of their resume.
