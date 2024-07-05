@@ -20,7 +20,7 @@ pip install -r requirements.txt
 ## Usage
 
  - Add your resume to `./data/sample_resume.yaml`
- - Update `./config/config.ini` with your name and inf
+ - Update `./config/config.ini` with your name and info
  - Provide ResumeGPT with the link to a job posting and it will tailot your resume to the job:
 
 ```python
