@@ -6,14 +6,17 @@ from langchain_openai import ChatOpenAI
 # Initialize logger
 logger = logging.getLogger(__name__)
 
+# Your resume filename here:
+YOUR_RESUME_NAME =  "example_resume.yaml"
+
 # Define project paths
 PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(PROJECT_PATH, "data")
+DEFAULT_RESUME_PATH = os.path.join(DATA_PATH, YOUR_RESUME_NAME)
 RESOURCES_PATH = os.path.join(PROJECT_PATH, "resources")
 PROMPTS_PATH = os.path.join(PROJECT_PATH, "prompts")
 CONFIG_PATH = os.path.join(PROJECT_PATH, "config")
 CONFIG_INI_PATH = os.path.join(CONFIG_PATH, "config.ini")
-DEFAULT_RESUME_PATH = os.path.join(DATA_PATH, "sample_resume.yaml")
 PROMPTS_YAML = os.path.join(PROMPTS_PATH, "prompts.yaml")
 DESCRIPTIONS_YAML = os.path.join(PROMPTS_PATH, "extractor_descriptions.yaml")
 REQUESTS_HEADERS = {

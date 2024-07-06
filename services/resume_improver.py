@@ -418,7 +418,9 @@ class ResumeImprover(ExtractorLLM):
                 f"Soft Skills: {', '.join(parsed_yaml['skills'][1]['skills'])}",
             ],
         }
-        pdf_location = os.path.join(self.job_data_location, "TylerKline.pdf")
+        pdf_location = os.path.join(
+            self.job_data_location, config.CONFIG_INI["author"] + ".pdf"
+        )
         pdf_generator = ResumePDFGenerator()
         pdf_generator.generate_resume(file_path=pdf_location, data=result)
         open_file_commands = config.OPEN_FILE_COMMAND.split(" ") + [pdf_location]

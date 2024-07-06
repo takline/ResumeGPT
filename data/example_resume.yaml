@@ -36,7 +36,6 @@ experiences:
       - Led the development and launch of a new digital banking platform, increasing customer acquisition by 30% within the first six months.
       - Implemented a customer feedback loop, resulting in a 20% improvement in customer satisfaction scores and a 15% reduction in churn rate.
       - Spearheaded a cross-functional team to integrate blockchain technology into payment systems, reducing transaction times by 40% and enhancing security.
-      - Developed a strategic partnership with a leading fintech company, resulting in a 25% increase in market share and new revenue streams.
 
   - company: Consulting Firm
     titles:
@@ -45,7 +44,6 @@ experiences:
         enddate: 2022
     highlights:
       - Designed and executed a digital transformation strategy for a major retail bank, leading to a 50% increase in online transactions and a 20% reduction in operational costs.
-      - Conducted a comprehensive market analysis for a new financial product, identifying key growth opportunities and contributing to a 15% increase in product adoption.
       - Facilitated workshops with senior executives to align on strategic priorities, resulting in a unified roadmap and improved project execution.
 
   - company: Financial Services Company
@@ -56,7 +54,6 @@ experiences:
     highlights:
       - Launched a mobile app for personal finance management, achieving 100,000 downloads within the first three months and a 4.8-star rating on app stores.
       - Collaborated with data scientists to develop predictive analytics models, enhancing customer targeting and increasing conversion rates by 25%.
-      - Managed the end-to-end product lifecycle for a new investment platform, from ideation to launch, resulting in a 20% increase in assets under management.
 
   - company: Financial Services Company
     titles:
@@ -66,27 +63,7 @@ experiences:
     highlights:
       - Developed and deployed a recommendation engine for personalized financial advice, increasing user engagement by 35%.
       - Conducted advanced data analysis to identify fraud patterns, reducing fraudulent transactions by 15% and saving the company $2 million annually.
-      - Built machine learning models to predict loan defaults, improving risk assessment accuracy by 20% and optimizing the lending process.
 
-  - company: Financial Services Company
-    titles:
-      - name: Data Analyst
-        startdate: 2016
-        enddate: 2018
-    highlights:
-      - Analyzed customer data to identify key trends and insights, informing marketing strategies and increasing campaign effectiveness by 30%.
-      - Automated data reporting processes, reducing manual effort by 50% and improving data accuracy.
-      - Conducted financial analysis to support investment decisions, contributing to a 10% increase in portfolio returns.
-
-  - company: Financial Services Company
-    titles:
-      - name: Analyst
-        startdate: 2013
-        enddate: 2016
-    highlights:
-      - Developed a comprehensive training program for new analysts, improving onboarding efficiency and reducing time-to-productivity by 40%.
-      - Conducted competitive analysis to identify market opportunities, supporting strategic decision-making and driving business growth.
-      - Led a project to streamline internal processes, resulting in a 20% increase in operational efficiency and cost savings.
 skills:
   - category: Technical
     skills:
@@ -95,18 +72,11 @@ skills:
       - Data Analysis
       - API Integration
       - Cloud Services
-      - Version Control (Git)
-      - Agile Methodologies
-      - Project Management Tools (JIRA, Trello)
-      - Basic Web Development (HTML, CSS, JavaScript)
   - category: Non-technical
     skills:
-      - Analytical Thinking
-      - Problem Solving
       - Communication
       - Leadership
       - Team Collaboration
-      - Time Management
       - Strategic Planning
       - Stakeholder Management
       - Adaptability
