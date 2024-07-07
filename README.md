@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="images/ResumeGPT.png"/>
-    <source media="(prefers-color-scheme: light)" srcset="images/ResumeGPT-light.png"/>
+    <source media="(prefers-color-scheme: dark)" srcset="images/ResumeGPT-light.png"/>
+    <source media="(prefers-color-scheme: light)" srcset="images/ResumeGPT.png"/>
     <img width="400" src="images/ResumeGPT.png"/>
  <br />
 </h1>
