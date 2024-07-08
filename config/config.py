@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 logger = logging.getLogger(__name__)
 
 # Your resume filename here:
-YOUR_RESUME_NAME =  "example_resume.yaml"
+YOUR_RESUME_NAME =  "sample_resume.yaml"
 
 # Define project paths
 PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

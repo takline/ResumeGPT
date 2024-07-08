@@ -25,7 +25,13 @@ from ..pdf_generation import ResumePDFGenerator
 
 class ResumeImprover(ExtractorLLM):
     def __init__(self, url, resume_location=None, llm_kwargs: dict = None):
-        """Initialize ResumeImprover with the job post URL and optional resume location."""
+        """Initialize ResumeImprover with the job post URL and optional resume location.
+
+        Args:
+            url (str): The URL of the job post.
+            resume_location (str, optional): The file path to the resume. Defaults to None.
+            llm_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+        """
         super().__init__()
         self.job_post_html_data = None
         self.job_post_raw = None
@@ -57,7 +63,11 @@ class ResumeImprover(ExtractorLLM):
         self.summary = utils.get_dict_field(field="summary", data_dict=self.resume)
 
     def _extract_html_data(self):
-        """Extract text content from HTML, removing all HTML tags."""
+        """Extract text content from HTML, removing all HTML tags.
+
+        Raises:
+            Exception: If HTML data extraction fails.
+        """
         try:
             soup = BeautifulSoup(self.job_post_html_data, "html.parser")
             self.job_post_raw = soup.get_text(separator=" ", strip=True)
@@ -65,8 +75,17 @@ class ResumeImprover(ExtractorLLM):
             config.logger.error(f"Failed to extract HTML data: {e}")
             raise
 
-    def _download_url(self):
-        """Download the content of the URL and return it as a string."""
+    def _download_url(self, url=None):
+        """Download the content of the URL and return it as a string.
+
+        Args:
+            url (str, optional): The URL to download. Defaults to None.
+
+        Raises:
+            requests.RequestException: If the URL download fails.
+        """
+        if url:
+            self.url = url
         try:
             response = requests.get(self.url, headers=config.REQUESTS_HEADERS)
             response.raise_for_status()
@@ -75,8 +94,14 @@ class ResumeImprover(ExtractorLLM):
             config.logger.error(f"Failed to download URL {self.url}: {e}")
             raise
 
-    def download_and_parse_job_post(self):
-        """Download and parse the job post from the provided URL."""
+    def download_and_parse_job_post(self, url=None):
+        """Download and parse the job post from the provided URL.
+
+        Args:
+            url (str, optional): The URL of the job post. Defaults to None.
+        """
+        if url:
+            self.url = url
         self._download_url()
         self._extract_html_data()
         self.job_post = JobPost(self.job_post_raw)
@@ -103,8 +128,13 @@ class ResumeImprover(ExtractorLLM):
             self.parsed_job, filename=os.path.join(self.job_data_location, "job.yaml")
         )
 
-    def create_draft_tailored_resume(self):
-        """Run a full review of the resume against the job post."""
+    def create_draft_tailored_resume(self, auto_open=True, manual_review=True):
+        """Run a full review of the resume against the job post.
+
+        Args:
+            auto_open (bool, optional): Whether to automatically open the generated resume. Defaults to True.
+            manual_review (bool, optional): Whether to wait for manual review. Defaults to True.
+        """
         config.logger.info("Extracting matched skills...")
 
         self.skills = self.extract_matched_skills(verbose=False)
@@ -124,38 +154,20 @@ class ResumeImprover(ExtractorLLM):
         )
         utils.write_yaml(resume_dict, filename=self.yaml_loc)
         self.resume_yaml = utils.read_yaml(filename=self.yaml_loc)
-
-        subprocess.run(["cursor", "-r", self.yaml_loc])
-
-        while utils.read_yaml(filename=self.yaml_loc)["editing"]:
-            time.sleep(5)
+        if auto_open:
+            subprocess.run(config.OPEN_FILE_COMMAND.split(" ") + [self.yaml_loc])
+        if manual_review:
+            while utils.read_yaml(filename=self.yaml_loc)["editing"]:
+                time.sleep(5)
         config.logger.info("Saving PDF")
-        self.create_pdf()
-
-    def _launch_widget(self):
-        """Launch a widget for editing the resume."""
-        self.text_area = widgets.Textarea(
-            value=self.resume_yaml,
-            disabled=False,
-            layout=widgets.Layout(width="80%", height="800px"),
-        )
-        display(self.text_area)
-        self.button = widgets.Button(description="Submit")
-        self.button.on_click(self._on_button_clicked)
-        display(self.button)
-
-    def _on_button_clicked(self, b):
-        """Handle the button click event to submit the edited resume."""
-        self.resume_yaml = self.text_area.value
-        clear_output(wait=False)
-        time.sleep(1)
-        display(Markdown(self.resume_yaml))
-        time.sleep(2)
-        clear_output(wait=True)
-        self.editing = False
+        self.create_pdf(auto_open=auto_open)
 
     def _section_highlighter_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for highlighting relevant resume sections."""
+        """Create a chain for highlighting relevant resume sections.
+
+        Returns:
+            RunnableSequence: The chain for highlighting resume sections.
+        """
         prompt_msgs = Prompts.lookup["SECTION_HIGHLIGHTER"]
         prompt = ChatPromptTemplate(messages=prompt_msgs)
 
@@ -163,7 +175,11 @@ class ResumeImprover(ExtractorLLM):
         return prompt | llm | StrOutputParser()
 
     def _skills_matcher_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for matching skills from the resume to the job posting."""
+        """Create a chain for matching skills from the resume to the job posting.
+
+        Returns:
+            RunnableSequence: The chain for matching skills.
+        """
         prompt_msgs = Prompts.lookup["SKILLS_MATCHER"]
         prompt = ChatPromptTemplate(messages=prompt_msgs)
 
@@ -171,7 +187,11 @@ class ResumeImprover(ExtractorLLM):
         return prompt | llm | StrOutputParser()
 
     def _summary_writer_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for writing a compelling resume summary."""
+        """Create a chain for writing a compelling resume summary.
+
+        Returns:
+            RunnableSequence: The chain for writing the resume summary.
+        """
         prompt_msgs = Prompts.lookup["SUMMARY_WRITER"]
         prompt = ChatPromptTemplate(messages=prompt_msgs)
 
@@ -179,7 +199,11 @@ class ResumeImprover(ExtractorLLM):
         return prompt | llm | StrOutputParser()
 
     def _improver_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for critiquing and improving the resume."""
+        """Create a chain for critiquing and improving the resume.
+
+        Returns:
+            RunnableSequence: The chain for critiquing and improving the resume.
+        """
         prompt_msgs = Prompts.lookup["IMPROVER"]
         prompt = ChatPromptTemplate(messages=prompt_msgs)
 
@@ -187,6 +211,14 @@ class ResumeImprover(ExtractorLLM):
         return prompt | llm | StrOutputParser()
 
     def _get_degrees(self, resume: dict):
+        """Extract degrees from the resume.
+
+        Args:
+            resume (dict): The resume data.
+
+        Returns:
+            list: A list of degree names.
+        """
         result = []
         for degrees in utils.generator_key_in_nested_dict("degrees", resume):
             for degree in degrees:
@@ -197,6 +229,14 @@ class ResumeImprover(ExtractorLLM):
         return result
 
     def _format_skills_for_prompt(self, skills: list) -> list:
+        """Format skills for inclusion in a prompt.
+
+        Args:
+            skills (list): The list of skills.
+
+        Returns:
+            list: A formatted list of skills.
+        """
         result = []
         for cat in skills:
             curr = ""
@@ -209,6 +249,14 @@ class ResumeImprover(ExtractorLLM):
         return result
 
     def _get_cumulative_time_from_titles(self, titles) -> int:
+        """Calculate the cumulative time from job titles.
+
+        Args:
+            titles (list): A list of job titles with start and end dates.
+
+        Returns:
+            int: The cumulative time in years.
+        """
         result = 0.0
         for t in titles:
             if "startdate" in t and "enddate" in t:
@@ -220,6 +268,11 @@ class ResumeImprover(ExtractorLLM):
         return round(result)
 
     def _format_experiences_for_prompt(self) -> list:
+        """Format experiences for inclusion in a prompt.
+
+        Returns:
+            list: A formatted list of experiences.
+        """
         result = []
         for exp in self.experiences:
             curr = ""
@@ -233,14 +286,24 @@ class ResumeImprover(ExtractorLLM):
         return result
 
     def _combine_skills_in_category(self, l1: list[str], l2: list[str]):
-        """Combines l2 into l1 without lowercase duplicates"""
+        """Combine two lists of skills without duplicating lowercase entries.
+
+        Args:
+            l1 (list[str]): The first list of skills.
+            l2 (list[str]): The second list of skills.
+        """
         l1_lower = {i.lower() for i in l1}
         for i in l2:
             if i.lower() not in l1_lower:
                 l1.append(i)
 
     def _combine_skill_lists(self, l1: list[dict], l2: list[dict]):
-        """Combine l2 skills list into l1 without duplicating lowercase category or skills"""
+        """Combine two lists of skill categories without duplicating lowercase entries.
+
+        Args:
+            l1 (list[dict]): The first list of skill categories.
+            l2 (list[dict]): The second list of skill categories.
+        """
         l1_categories_lowercase = {s["category"].lower(): i for i, s in enumerate(l1)}
         for s in l2:
             if s["category"].lower() in l1_categories_lowercase:
@@ -252,9 +315,24 @@ class ResumeImprover(ExtractorLLM):
                 l1.append(s)
 
     def _print_debug_message(self, chain_kwargs: dict, chain_output_unformatted: str):
+        """Print a debug message.
+
+        Args:
+            chain_kwargs (dict): The keyword arguments for the chain.
+            chain_output_unformatted (str): The unformatted output from the chain.
+        """
         message = "Final answer is missing from the chain output."
 
     def rewrite_section(self, section: list | str, **chain_kwargs) -> dict:
+        """Rewrite a section of the resume.
+
+        Args:
+            section (list | str): The section to rewrite.
+            **chain_kwargs: Additional keyword arguments for the chain.
+
+        Returns:
+            dict: The rewritten section.
+        """
         chain = self._section_highlighter_chain(**chain_kwargs)
 
         chain_inputs = format_prompt_inputs_as_strings(
@@ -282,6 +360,14 @@ class ResumeImprover(ExtractorLLM):
         return [s["highlight"] for s in section_revised]
 
     def rewrite_unedited_experiences(self, **chain_kwargs) -> dict:
+        """Rewrite unedited experiences in the resume.
+
+        Args:
+            **chain_kwargs: Additional keyword arguments for the chain.
+
+        Returns:
+            dict: The rewritten experiences.
+        """
         result = []
         for exp in self.experiences:
             exp = dict(exp)
@@ -291,6 +377,14 @@ class ResumeImprover(ExtractorLLM):
         return result
 
     def extract_matched_skills(self, **chain_kwargs) -> dict:
+        """Extract matched skills from the resume and job post.
+
+        Args:
+            **chain_kwargs: Additional keyword arguments for the chain.
+
+        Returns:
+            dict: The extracted skills.
+        """
         chain = self._skills_matcher_chain(**chain_kwargs)
 
         chain_inputs = format_prompt_inputs_as_strings(
@@ -333,6 +427,14 @@ class ResumeImprover(ExtractorLLM):
         return result
 
     def write_summary(self, **chain_kwargs) -> dict:
+        """Write a summary for the resume.
+
+        Args:
+            **chain_kwargs: Additional keyword arguments for the chain.
+
+        Returns:
+            dict: The written summary.
+        """
         chain = self._summary_writer_chain(**chain_kwargs)
         chain_inputs = format_prompt_inputs_as_strings(
             prompt_inputs=chain.input_schema().dict(),
@@ -353,6 +455,14 @@ class ResumeImprover(ExtractorLLM):
         return summary["final_answer"]
 
     def suggest_improvements(self, **chain_kwargs) -> dict:
+        """Suggest improvements for the resume.
+
+        Args:
+            **chain_kwargs: Additional keyword arguments for the chain.
+
+        Returns:
+            dict: The suggested improvements.
+        """
         chain = self._improver_chain(**chain_kwargs)
         chain_inputs = format_prompt_inputs_as_strings(
             prompt_inputs=chain.input_schema().dict(),
@@ -374,6 +484,11 @@ class ResumeImprover(ExtractorLLM):
         return improvements["final_answer"]
 
     def finalize(self) -> dict:
+        """Finalize the resume data.
+
+        Returns:
+            dict: The finalized resume data.
+        """
         return dict(
             basic=self.basic_info,
             summary=self.summary,
@@ -382,47 +497,80 @@ class ResumeImprover(ExtractorLLM):
             skills=self.skills,
         )
 
-    def create_pdf(self):
+    def create_pdf(self, auto_open=True):
+        """Create a PDF of the resume.
+
+        Args:
+            auto_open (bool, optional): Whether to automatically open the generated PDF. Defaults to True.
+
+        Returns:
+            str: The file path to the generated PDF.
+        """
         parsed_yaml = utils.read_yaml(filename=self.yaml_loc)
-        result = {
-            "education": [
-                {"degree": degree["names"][0], "university": edu["school"]}
-                for edu in sorted(
-                    parsed_yaml["education"],
-                    key=lambda x: "Wisconsin" not in x["school"],
-                )
-                for degree in edu["degrees"]
-            ],
-            "objective": parsed_yaml["summary"],
-            "experience": [
+
+        def extract_education(education):
+            """Extract education details from the resume.
+
+            Args:
+                education (list): The education data.
+
+            Returns:
+                list: A list of dictionaries containing degree and university information.
+            """
+            return [
+                {"degree": degree, "university": edu["school"]}
+                for edu in education
+                for degree in edu["degrees"][0]["names"]
+            ]
+
+        def extract_experience(experiences):
+            """Extract experience details from the resume.
+
+            Args:
+                experiences (list): The experience data.
+
+            Returns:
+                list: A list of dictionaries containing title, company, location, duration, and description.
+            """
+            return [
                 {
                     "title": title["name"],
-                    "company": (
-                        "Capital One"
-                        if "Capital One" in exp["company"]
-                        else exp["company"]
-                    ),
-                    "location": "New York, NY",
-                    "duration": (
-                        f"{'2012' if 'Capital One' in exp['company'] else title['startdate']}-{title['enddate']}"
-                        if "enddate" in title
-                        else "2024"
-                    ),
+                    "company": exp["company"],
+                    "location": exp["location"],
+                    "duration": f"{title['startdate']}-{title['enddate']}",
                     "description": exp["highlights"],
                 }
-                for exp in parsed_yaml["experiences"]
+                for exp in experiences
                 for title in exp["titles"]
-            ],
-            "skills": [
-                f"Technical: {', '.join(parsed_yaml['skills'][0]['skills'])}",
-                f"Soft Skills: {', '.join(parsed_yaml['skills'][1]['skills'])}",
-            ],
+            ]
+
+        def extract_skills(skills):
+            """Extract skills details from the resume.
+
+            Args:
+                skills (list): The skills data.
+
+            Returns:
+                list: A list of formatted skills strings.
+            """
+            return [
+                f"{skill['category']}: {', '.join(skill['skills'])}" for skill in skills
+            ]
+
+        result = {
+            "education": extract_education(parsed_yaml.get("education", [])),
+            "objective": parsed_yaml.get("summary", ""),
+            "experience": extract_experience(parsed_yaml.get("experiences", [])),
+            "skills": extract_skills(parsed_yaml.get("skills", [])),
         }
+
         pdf_location = os.path.join(
-            self.job_data_location, config.CONFIG_INI["author"] + ".pdf"
+            self.job_data_location, f"{config.CONFIG_INI['author']}.pdf"
         )
         pdf_generator = ResumePDFGenerator()
         pdf_generator.generate_resume(file_path=pdf_location, data=result)
-        open_file_commands = config.OPEN_FILE_COMMAND.split(" ") + [pdf_location]
-        subprocess.run(open_file_commands)
+
+        if auto_open:
+            subprocess.run(config.OPEN_FILE_COMMAND.split(" ") + [pdf_location])
+
         return pdf_location

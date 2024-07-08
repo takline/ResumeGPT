@@ -77,6 +77,9 @@ ResumeGPT then creates a new resume YAML file in a new folder named after the jo
   <img src="images/example_resume_output.png" alt="Resume Example" width="400"/>
 </p>
 
+
+
+
 ## Discussions
 Feel free to give feedback, ask questions, report a bug, or suggest improvements:
 
@@ -85,3 +88,6 @@ Feel free to give feedback, ask questions, report a bug, or suggest improvements
 
 ##  Contributors
 ⭐️  Please star, fork, explore, and contribute to ResumeGPT. There's a lot of work room for improvement so any contributions are appreciated.
+
+
+

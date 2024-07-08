@@ -25,7 +25,7 @@ class TestResumePDFGenerator(unittest.TestCase):
             ],
             "skills": ["Technical: Python, SQL", "Soft Skills: Leadership"],
         }
-        file_path = os.path.join(PROJECT_PATH, "test/test_data/resume.pdf")
+        file_path = os.path.join(config.PROJECT_PATH, "tests/test_data/resume.pdf")
         self.pdf_generator.generate_resume(file_path, data)
         self.assertTrue(os.path.exists(file_path))
 
