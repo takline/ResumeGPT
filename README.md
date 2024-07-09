@@ -9,16 +9,16 @@
 <div align="center">
 
 <p align="center">
+  <a href="#features">
+    <b>Features</b>
+  </a>
+     · 
   <a href="#installation">
     <b>Install</b>
   </a>
      · 
   <a href="#usage">
     <b>Usage</b>
-  </a>
-     · 
-  <a href="#features">
-    <b>Features</b>
   </a>
       · 
   <a href="#discussions">
@@ -61,12 +61,12 @@ pip install -r requirements.txt
 
 ## Usage
 
- - Add your resume to ./data/sample_resume.yaml (make sure ResumeGPT.config.YOUR_RESUME_NAME is set to your resume filename in the `.data/` folder)
+ - Add your resume to `./data/sample_resume.yaml` (make sure `ResumeGPT.config.YOUR_RESUME_NAME` is set to your resume filename in the `.data/` folder)
  - Update `./config/config.ini` with your name and info that will be included in your resume
  - Provide ResumeGPT with the link to a job posting and it will tailot your resume to the job:
 
 ```python
-url = "https://[link to your job posting]
+url = "https://[link to your job posting]"
 resume_improver = ResumeGPT.services.ResumeImprover(url)
 resume_improver.create_draft_tailored_resume()
 ```
@@ -83,8 +83,9 @@ ResumeGPT then creates a new resume YAML file in a new folder named after the jo
 ## Discussions
 Feel free to give feedback, ask questions, report a bug, or suggest improvements:
 
-[Discussions](https://github.com/takline/ResumeGPT/discussions)
-[Issues](https://github.com/takline/ResumeGPT/issues)
+ - [Discussions](https://github.com/takline/ResumeGPT/discussions)
+ - [Issues](https://github.com/takline/ResumeGPT/issues)
+
 
 ##  Contributors
 ⭐️  Please star, fork, explore, and contribute to ResumeGPT. There's a lot of work room for improvement so any contributions are appreciated.
