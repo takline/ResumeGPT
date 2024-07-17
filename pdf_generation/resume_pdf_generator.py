@@ -3,7 +3,9 @@ import json
 import os
 import random
 from .. import config
+from .. import utils
 import subprocess
+import yaml
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
@@ -11,7 +13,14 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics, ttfonts
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+from reportlab.platypus import (
+    Paragraph,
+    SimpleDocTemplate,
+    Table,
+    TableStyle,
+    Spacer,
+    HRFlowable,
+)
 from . import resume_pdf_styles
 
 
@@ -72,6 +81,7 @@ class ResumePDFGenerator:
             span (bool, optional): Whether the row should span across columns. Defaults to False.
             padding (tuple, optional): The top and bottom padding for the row. Defaults to (1, 1).
             bullet_point (str, optional): The bullet point to prepend to the content.
+            spacer_height (int, optional): The height of the spacer to add after the row. Defaults to None.
         """
         if bullet_point:
             table_data.append(
@@ -92,7 +102,10 @@ class ResumePDFGenerator:
         )
         if span:
             table_styles.append(("SPAN", (0, row_index), (1, row_index)))
-        return row_index + 1
+
+        row_index += 1
+
+        return row_index
 
     def add_experiences(self, table_data, table_styles, row_index, experiences):
         """
@@ -115,7 +128,7 @@ class ResumePDFGenerator:
         )
         self._append_section_table_style(table_styles, row_index - 1)
 
-        for job in experiences:
+        for idx, job in enumerate(experiences):
             # Create a duration string from startdate and enddate
             duration = f"{job['titles'][0]['startdate']}-{job['titles'][0]['enddate']}"
 
@@ -154,6 +167,9 @@ class ResumePDFGenerator:
                     if i == len(job["highlights"]) - 1
                     else resume_pdf_styles.PARAGRAPH_STYLES["bullet_points"]
                 )
+                padding = (0, 1)
+                if i == len(job["highlights"]) - 1:
+                    padding = (5, 1)
                 row_index = self._add_table_row(
                     table_data=table_data,
                     table_styles=table_styles,
@@ -166,7 +182,7 @@ class ResumePDFGenerator:
                         )
                     ],
                     span=True,
-                    padding=(0, 1),
+                    padding=padding,
                 )
 
         return row_index
@@ -374,3 +390,15 @@ class ResumePDFGenerator:
 
         doc.build([table])
         return pdf_location
+
+    def generate_pdf_from_resume_yaml(self, yaml_path, job_data_location):
+        """
+        Generate a resume PDF from YAML data.
+
+        Args:
+            yaml_path (str): The path to the YAML file containing resume information.
+            job_data_location (str): The path where the PDF will be saved.
+        """
+        return self.generate_resume(
+            job_data_location, utils.read_yaml(filename=yaml_path)
+        )
