@@ -125,8 +125,15 @@ first_resume_improver = background_runner["ResumeImprovers"][0]
 You will follow the same workflow when using ResumeGPT's BackgroundRunner (ex: verify the resume updates via `editing=false` in each `ResumeGPT/data/[Company_Name_Job_Title]/resume.yaml` file). You can also find logs for the BackgroundRunner in `ResumeGPT/data/background_tasks/tasks.log`.
 
 
+
+
 ### ResumeGPT PDF Output
 Here is an example ATS friendly resume created by ResumeGPT:
+
+```python
+pdf_generator = ResumeGPT.pdf_generation.ResumePDFGenerator()
+pdf_generator.generate_resume("/path/to/save/pdf/", ResumeGPT.utils.read_yaml(filename="/path/to/resume/resume.yaml"))
+```python
 
 <p align="center">
   <img src="images/example_resume_output.png" alt="Resume Example" width="400"/>
