@@ -18,7 +18,7 @@ RESUME_SKILLS_MATCHER_OUTPUT:
   work: itemized <Work>
   final_answer: <Final Answer> in the correct format
 
-RESUME_SUMMARIZER_OUTPUT:
+RESUME_OBJECTIVE_OUTPUT:
   plan: itemized <Plan>
   additional_steps: itemized <Additional Steps>
   work: itemized <Work>

@@ -12,119 +12,13 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics, ttfonts
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+from . import resume_pdf_styles
+
 
 class ResumePDFGenerator:
     """
     A class to generate a resume PDF from JSON data using the ReportLab library.
     """
-
-    PAGE_WIDTH, PAGE_HEIGHT = A4
-    FULL_COLUMN_WIDTH = PAGE_WIDTH - 1 * inch
-    JSON_PATH = os.path.join(config.DATA_PATH, "data.json")
-
-    FONT_PATHS = {
-        "regular": os.path.join(config.RESOURCES_PATH, "fonts/calibri.ttf"),
-        "bold": os.path.join(config.RESOURCES_PATH, "fonts/calibrib.ttf"),
-        "italic": os.path.join(config.RESOURCES_PATH, "fonts/calibrii.ttf"),
-    }
-    FONT_NAMES = {
-        "regular": "FONT_Regular",
-        "bold": "FONT_Bold",
-        "italic": "FONT_Italic",
-    }
-
-    PARAGRAPH_STYLES = {
-        "job_details": ParagraphStyle(
-            name="job_details_paragraph",
-            leftIndent=12,
-            fontName=FONT_NAMES["regular"],
-            fontSize=11,
-            leading=12,
-            alignment=0,  # TA_LEFT
-            justifyBreaks=0,
-            justifyLastLine=0,
-        ),
-        "name": ParagraphStyle(
-            name="name_paragraph",
-            fontName=FONT_NAMES["bold"],
-            fontSize=14,
-            textTransform="uppercase",
-            alignment=TA_CENTER,
-            leading=12,
-        ),
-        "normal": ParagraphStyle(
-            name="normal_paragraph",
-            fontName=FONT_NAMES["regular"],
-            fontSize=11,
-            leading=12,
-        ),
-        "education": ParagraphStyle(
-            name="education_paragraph",
-            fontName=FONT_NAMES["regular"],
-            fontSize=11,
-            leading=12,
-        ),
-        "space": ParagraphStyle(
-            name="space_paragraph",
-            fontName=FONT_NAMES["regular"],
-            fontSize=0,
-            leading=0,
-        ),
-        "skills": ParagraphStyle(
-            name="skills_paragraph",
-            fontName=FONT_NAMES["regular"],
-            fontSize=11,
-            leading=12,
-        ),
-        "contact": ParagraphStyle(
-            name="contact_paragraph",
-            fontName=FONT_NAMES["regular"],
-            fontSize=11,
-            leading=12,
-            alignment=TA_CENTER,
-        ),
-        "section": ParagraphStyle(
-            name="section_paragraph",
-            fontName=FONT_NAMES["bold"],
-            fontSize=11,
-            textTransform="uppercase",
-        ),
-        "objective": ParagraphStyle(
-            name="objective_paragraph",
-            fontName=FONT_NAMES["regular"],
-            fontSize=11,
-            leading=13,
-            alignment=0,  # TA_LEFT
-            justifyBreaks=0,
-            justifyLastLine=0,
-        ),
-        "company_heading": ParagraphStyle(
-            name="company_heading_paragraph",
-            fontName=FONT_NAMES["bold"],
-            fontSize=11,
-            leading=8,
-        ),
-        "company_title": ParagraphStyle(
-            name="company_title_paragraph",
-            fontName=FONT_NAMES["italic"],
-            fontSize=11,
-            leading=8,
-        ),
-        "company_duration": ParagraphStyle(
-            name="company_duration_paragraph",
-            fontName=FONT_NAMES["italic"],
-            fontSize=11,
-            alignment=TA_RIGHT,
-            leading=8,
-        ),
-        "company_location": ParagraphStyle(
-            name="company_location_paragraph",
-            fontName=FONT_NAMES["italic"],
-            fontSize=11,
-            alignment=TA_RIGHT,
-            leading=8,
-        ),
-    }
 
     def __init__(self):
         """
@@ -136,8 +30,10 @@ class ResumePDFGenerator:
         """
         Register fonts for use in the PDF.
         """
-        for style, path in self.FONT_PATHS.items():
-            pdfmetrics.registerFont(ttfonts.TTFont(self.FONT_NAMES[style], path))
+        for style, path in resume_pdf_styles.FONT_PATHS.items():
+            pdfmetrics.registerFont(
+                ttfonts.TTFont(resume_pdf_styles.FONT_NAMES[style], path)
+            )
 
     def _append_section_table_style(self, table_styles, row_index):
         """
@@ -155,231 +51,326 @@ class ResumePDFGenerator:
             ]
         )
 
-    def generate_resume(
+    def _add_table_row(
         self,
-        file_path,
-        data,
-        author=config.CONFIG_INI["author"],
-        email=config.CONFIG_INI["email"],
-        address=config.CONFIG_INI["address"],
-        phone=config.CONFIG_INI["phone"],
-        github=config.CONFIG_INI["github"],
-        linkedin=config.CONFIG_INI["linkedin"],
-        debug=config.CONFIG_INI["debug"],
+        table_data,
+        table_styles,
+        row_index,
+        content_style_map,
+        span=False,
+        padding=resume_pdf_styles.DEFAULT_PADDING,
+        bullet_point=None,
     ):
+        """
+        Add a row to the table data and update the table styles.
+
+        Args:
+            table_data (list): The table data to be extended.
+            table_styles (list): The table styles to be extended.
+            row_index (int): The current row index in the table.
+            content_style_map (list of tuples): A list of tuples where each tuple contains content and its corresponding style.
+            span (bool, optional): Whether the row should span across columns. Defaults to False.
+            padding (tuple, optional): The top and bottom padding for the row. Defaults to (1, 1).
+            bullet_point (str, optional): The bullet point to prepend to the content.
+        """
+        if bullet_point:
+            table_data.append(
+                [
+                    Paragraph(content, bulletText=bullet_point, style=style)
+                    for content, style in content_style_map
+                ]
+            )
+        else:
+            table_data.append(
+                [Paragraph(content, style) for content, style in content_style_map]
+            )
+        table_styles.extend(
+            [
+                ("BOTTOMPADDING", (0, row_index), (-1, row_index), padding[0]),
+                ("TOPPADDING", (0, row_index), (-1, row_index), padding[1]),
+            ]
+        )
+        if span:
+            table_styles.append(("SPAN", (0, row_index), (1, row_index)))
+        return row_index + 1
+
+    def add_experiences(self, table_data, table_styles, row_index, experiences):
+        """
+        Add experiences section to the resume.
+
+        Args:
+            table_data (list): The table data to be extended.
+            table_styles (list): The table styles to be extended.
+            row_index (int): The current row index in the table.
+            experiences (list): The list of experiences to be added.
+        """
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                ("Experience", resume_pdf_styles.PARAGRAPH_STYLES["section"])
+            ],
+            span=True,
+        )
+        self._append_section_table_style(table_styles, row_index - 1)
+
+        for job in experiences:
+            # Create a duration string from startdate and enddate
+            duration = f"{job['titles'][0]['startdate']}-{job['titles'][0]['enddate']}"
+
+            row_index = self._add_table_row(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                content_style_map=[
+                    (
+                        job["company"],
+                        resume_pdf_styles.PARAGRAPH_STYLES["company_heading"],
+                    ),
+                    (duration, resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                ],
+            )
+
+            row_index = self._add_table_row(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                content_style_map=[
+                    (
+                        job["titles"][0]["name"],
+                        resume_pdf_styles.PARAGRAPH_STYLES["company_title"],
+                    ),
+                    (
+                        job["location"],
+                        resume_pdf_styles.PARAGRAPH_STYLES["company_location"],
+                    ),
+                ],
+            )
+
+            for i, bullet_point in enumerate(job["highlights"]):
+                style = (
+                    resume_pdf_styles.PARAGRAPH_STYLES["last_bullet_point"]
+                    if i == len(job["highlights"]) - 1
+                    else resume_pdf_styles.PARAGRAPH_STYLES["bullet_points"]
+                )
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    bullet_point="•",
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            bullet_point,
+                            style,
+                        )
+                    ],
+                    span=True,
+                    padding=(0, 1),
+                )
+
+        return row_index
+
+    def add_education(self, table_data, table_styles, row_index, education):
+        """
+        Add education section to the resume.
+
+        Args:
+            table_data (list): The table data to be extended.
+            table_styles (list): The table styles to be extended.
+            row_index (int): The current row index in the table.
+            education (list): The list of education entries to be added.
+        """
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                ("Education", resume_pdf_styles.PARAGRAPH_STYLES["section"])
+            ],
+            span=True,
+        )
+        self._append_section_table_style(table_styles, row_index - 1)
+
+        for edu in education:
+            degrees = ", ".join(edu["degrees"][0]["names"])
+            row_index = self._add_table_row(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                content_style_map=[
+                    (
+                        f"<font name='{resume_pdf_styles.FONT_NAMES['bold']}'>{edu['school']}</font>, {degrees}",
+                        resume_pdf_styles.PARAGRAPH_STYLES["education"],
+                    )
+                ],
+                span=True,
+            )
+        return row_index
+
+    def add_skills(self, table_data, table_styles, row_index, skills):
+        """
+        Add skills section to the resume.
+
+        Args:
+            table_data (list): The table data to be extended.
+            table_styles (list): The table styles to be extended.
+            row_index (int): The current row index in the table.
+            skills (list): The list of skills to be added.
+        """
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                ("Skills", resume_pdf_styles.PARAGRAPH_STYLES["section"])
+            ],
+            span=True,
+        )
+        self._append_section_table_style(table_styles, row_index - 1)
+
+        for group in skills:
+            group_keys = list(group.keys())
+            skill_type = group[group_keys[0]]
+            skills_list = group[group_keys[1]]
+            skills_str = ", ".join(skills_list)
+            formatted_skills = f"<font name='{resume_pdf_styles.FONT_NAMES['bold']}'>{skill_type}</font>: {skills_str}"
+            row_index = self._add_table_row(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                content_style_map=[
+                    (formatted_skills, resume_pdf_styles.PARAGRAPH_STYLES["skills"])
+                ],
+                span=True,
+                padding=(2, 2),
+            )
+        return row_index
+
+    def generate_resume(self, job_data_location, data):
         """
         Generate a resume PDF from JSON data.
 
         Args:
-            file_path (str): The path where the PDF will be saved.
+            job_data_location (str): The path where the PDF will be saved.
             data (dict): The JSON data containing resume information.
-            author (str): The author's name.
-            email (str): The author's email.
-            address (str): The author's address.
-            phone (str): The author's phone number.
-            github (str): The author's GitHub profile.
-            linkedin (str): The author's LinkedIn profile.
-            debug (str): Debug flag to show grid lines in the PDF.
         """
-        author_name_formatted = author.replace(" ", "_") + "_resume"
-        doc = SimpleDocTemplate(
-            file_path,
-            pagesize=A4,
-            showBoundary=0,
-            leftMargin=0.1 * inch,
-            rightMargin=0.1 * inch,
-            topMargin=0.1 * inch,
-            bottomMargin=0.1 * inch,
-            title=f"{author_name_formatted}",
-            author=author,
-        )
+        email = data["basic"]["contact"]["email"]
+        name = data["basic"]["name"]
+        phone = data["basic"]["contact"]["phone"]
 
+        def clean_url(url):
+            return (
+                url.replace("https://", "").replace("http://", "").replace("www.", "")
+            )
+
+        linkedin = next(
+            (
+                clean_url(site["url"])
+                for site in data["basic"]["websites"]
+                if site["icon"] == "linkedin"
+            ),
+            "",
+        )
+        github = next(
+            (
+                clean_url(site["url"])
+                for site in data["basic"]["websites"]
+                if site["icon"] == "github"
+            ),
+            "",
+        )
+        address = ", ".join(data["basic"]["address"])
+        doc, pdf_location = resume_pdf_styles.generate_doc_template(
+            name, job_data_location
+        )
         table_data = []
         table_styles = []
         row_index = 0
 
-        if debug == "true":
-            table_styles.append(("GRID", (0, 0), (-1, -1), 0, colors.black))
+        if data.get("debug", False):
+            table_styles.append(resume_pdf_styles.DEBUG_STYLE)
 
-        table_styles.extend(
-            [
-                ("ALIGN", (0, 0), (0, -1), "LEFT"),
-                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
+        table_styles.extend(resume_pdf_styles.DOCUMENT_ALIGNMENT)
 
         # Add name and contact information
-        table_data.append([Paragraph(author, self.PARAGRAPH_STYLES["name"])])
-        table_styles.extend(
-            [
-                ("BOTTOMPADDING", (0, row_index), (-1, row_index), 1),
-                ("SPAN", (0, row_index), (1, row_index)),
-            ]
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[(name, resume_pdf_styles.PARAGRAPH_STYLES["name"])],
+            span=True,
         )
-        row_index += 1
 
-        table_data.append(
-            [
-                Paragraph(
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                (
                     f"{email} | {phone} | {linkedin} | {github} | {address}",
-                    self.PARAGRAPH_STYLES["contact"],
+                    resume_pdf_styles.PARAGRAPH_STYLES["contact"],
                 )
-            ]
+            ],
+            span=True,
         )
-        table_styles.extend(
-            [
-                ("BOTTOMPADDING", (0, row_index), (-1, row_index), 1),
-                ("SPAN", (0, row_index), (1, row_index)),
-            ]
-        )
-        row_index += 1
 
-        # Add summary
-        table_data.append([Paragraph("Objective", self.PARAGRAPH_STYLES["section"])])
-        self._append_section_table_style(table_styles, row_index)
-        table_styles.append(("SPAN", (0, row_index), (-1, row_index)))
-        row_index += 1
+        # Add objective
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                ("Objective", resume_pdf_styles.PARAGRAPH_STYLES["section"])
+            ],
+            span=True,
+        )
+        self._append_section_table_style(table_styles, row_index - 1)
 
-        table_data.append(
-            [Paragraph(data["objective"], self.PARAGRAPH_STYLES["objective"])]
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                (data["objective"], resume_pdf_styles.PARAGRAPH_STYLES["objective"])
+            ],
+            span=True,
         )
-        table_styles.extend(
-            [
-                ("BOTTOMPADDING", (0, row_index), (-1, row_index), 1),
-                ("SPAN", (0, row_index), (-1, row_index)),
-            ]
-        )
-        row_index += 1
 
         # Add experience
-        table_data.append([Paragraph("Experience", self.PARAGRAPH_STYLES["section"])])
-        self._append_section_table_style(table_styles, row_index)
-        row_index += 1
-
-        for job in data["experience"]:
-            skip_cof = (
-                job["company"] == "Capital One"
-                and job["title"] != "Product Manager, Pricing & Valuations"
-            )
-
-            if not skip_cof:
-                table_data.append(
-                    [
-                        Paragraph(
-                            job["company"], self.PARAGRAPH_STYLES["company_heading"]
-                        ),
-                        Paragraph(
-                            job["duration"], self.PARAGRAPH_STYLES["company_duration"]
-                        ),
-                    ]
-                )
-                table_styles.append(("TOPPADDING", (0, row_index), (1, row_index), 0))
-                row_index += 1
-
-                table_data.append(
-                    [
-                        Paragraph(job["title"], self.PARAGRAPH_STYLES["company_title"]),
-                        Paragraph(
-                            job["location"], self.PARAGRAPH_STYLES["company_location"]
-                        ),
-                    ]
-                )
-                table_styles.append(("TOPPADDING", (0, row_index), (1, row_index), 0))
-                table_styles.append(
-                    ("BOTTOMPADDING", (0, row_index), (1, row_index), 5)
-                )
-                row_index += 1
-            else:
-                table_data.append(
-                    [
-                        Paragraph(job["title"], self.PARAGRAPH_STYLES["company_title"]),
-                    ]
-                )
-                table_styles.append(("TOPPADDING", (0, row_index), (1, row_index), 0))
-                table_styles.append(
-                    ("BOTTOMPADDING", (0, row_index), (1, row_index), 5)
-                )
-                row_index += 1
-
-            for line in job["description"]:
-                table_data.append(
-                    [
-                        Paragraph(
-                            line,
-                            bulletText="•",
-                            style=self.PARAGRAPH_STYLES["job_details"],
-                        )
-                    ]
-                )
-                table_styles.extend(
-                    [
-                        ("TOPPADDING", (0, row_index), (1, row_index), 1),
-                        ("BOTTOMPADDING", (0, row_index), (1, row_index), 0),
-                        ("SPAN", (0, row_index), (1, row_index)),
-                    ]
-                )
-                row_index += 1
-
-            if not skip_cof:
-                table_data.append([Paragraph("", self.PARAGRAPH_STYLES["space"])])
-                table_styles.extend(
-                    [
-                        ("TOPPADDING", (0, row_index), (1, row_index), 0),
-                        ("BOTTOMPADDING", (0, row_index), (1, row_index), 0),
-                        ("SPAN", (0, row_index), (1, row_index)),
-                    ]
-                )
-                row_index += 1
+        row_index = self.add_experiences(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            experiences=data["experiences"],
+        )
 
         # Add education
-        table_data.append([Paragraph("Education", self.PARAGRAPH_STYLES["section"])])
-        self._append_section_table_style(table_styles, row_index)
-        row_index += 1
-
-        for edu in data["education"]:
-            table_data.append(
-                [
-                    Paragraph(
-                        f"<font name='{self.FONT_NAMES['bold']}'>{edu['university']}</font>, {edu['degree']}",
-                        self.PARAGRAPH_STYLES["education"],
-                    )
-                ]
-            )
-            table_styles.append(("TOPPADDING", (0, row_index), (1, row_index), 1))
-            row_index += 1
+        row_index = self.add_education(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            education=data["education"],
+        )
 
         # Add skills
-        table_data.append([Paragraph("Skills", self.PARAGRAPH_STYLES["section"])])
-        self._append_section_table_style(table_styles, row_index)
-        row_index += 1
-
-        for skill in data["skills"]:
-            skill_name, skill_description = skill.split(":")
-            table_data.append(
-                [
-                    Paragraph(
-                        f"<font name='{self.FONT_NAMES['bold']}'>{skill_name}</font>: {skill_description}",
-                        self.PARAGRAPH_STYLES["skills"],
-                    )
-                ]
-            )
-            table_styles.extend(
-                [
-                    ("TOPPADDING", (0, row_index), (1, row_index), 2),
-                    ("BOTTOMPADDING", (0, row_index), (1, row_index), 2),
-                    ("SPAN", (0, row_index), (1, row_index)),
-                ]
-            )
-            row_index += 1
+        row_index = self.add_skills(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            skills=data["skills"],
+        )
 
         table = Table(
             table_data,
-            colWidths=[self.FULL_COLUMN_WIDTH * 0.75, self.FULL_COLUMN_WIDTH * 0.3],
+            colWidths=[
+                resume_pdf_styles.FULL_COLUMN_WIDTH * 0.75,
+                resume_pdf_styles.FULL_COLUMN_WIDTH * 0.3,
+            ],
             spaceBefore=0,
             spaceAfter=0,
         )
         table.setStyle(TableStyle(table_styles))
 
         doc.build([table])
+        return pdf_location

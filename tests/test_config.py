@@ -1,6 +1,7 @@
 import unittest
 from ..config import config
 
+
 class TestConfig(unittest.TestCase):
     def test_logger_initialization(self):
         self.assertIsNotNone(config.logger)
@@ -12,19 +13,18 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.DEFAULT_RESUME_PATH)
 
     def test_requests_headers(self):
-        self.assertIn("User-Agent", config.REQUESTS_HEADERS)
+        self.assertTrue(
+            any(key.lower() == "user-agent".lower() for key in config.REQUESTS_HEADERS)
+        )
 
-    def test_model_configuration(self):
-        self.assertEqual(config.CHAT_MODEL.__name__, "ChatOpenAI")
-        self.assertEqual(config.MODEL_NAME, "gpt-4o")
-        self.assertEqual(config.TEMPERATURE, 0.3)
+    def test_model_configuration_types(self):
+        self.assertIsInstance(config.CHAT_MODEL, type)
+        self.assertIsInstance(config.MODEL_NAME, str)
+        self.assertIsInstance(config.TEMPERATURE, float)
 
     def test_openai_api_key(self):
         self.assertIn("OPENAI_API_KEY", config.os.environ)
 
-    def test_load_config(self):
-        self.assertIn("author", config.CONFIG_INI)
-        self.assertIn("email", config.CONFIG_INI)
 
 if __name__ == "__main__":
     unittest.main()

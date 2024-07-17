@@ -11,18 +11,18 @@ from ..config import config
 
 class TestYamlHandler(unittest.TestCase):
     def test_read_yaml(self):
-        data = read_yaml(filename=os.path.join(config.DATA_PATH, "sample_resume.yaml"))
+        data = read_yaml(filename=config.DEFAULT_RESUME_PATH)
         self.assertIsInstance(data, dict)
 
     def test_write_yaml(self):
         data = {"key": "value"}
         write_yaml(
             data,
-            filename=os.path.join(config.DATA_PATH, "tests_example/test_output.yaml"),
+            filename=os.path.join(config.TESTS_DATA_PATH, "test_output.yaml"),
         )
         self.assertTrue(
             os.path.exists(
-                os.path.join(config.DATA_PATH, "tests_example/test_output.yaml")
+                os.path.join(config.TESTS_DATA_PATH, "test_output.yaml")
             )
         )
 
@@ -33,10 +33,6 @@ class TestYamlHandler(unittest.TestCase):
 
 
 class TestFileHandler(unittest.TestCase):
-    def test_read_jobfile(self):
-        content = read_jobfile(os.path.join(config.DATA_PATH, "tests_example/job.yaml"))
-        self.assertIsInstance(content, str)
-
     def test_generator_key_in_nested_dict(self):
         nested_dict = {"key1": {"key2": "value"}}
         result = list(generator_key_in_nested_dict("key2", nested_dict))

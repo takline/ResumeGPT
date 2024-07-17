@@ -68,18 +68,18 @@ class ResumeSummarizerOutput(BaseModel):
     """Pydantic class that defines a list of skills to be returned by the LLM."""
 
     plan: List[str] = Field(
-        ..., description=Prompts.descriptions["RESUME_SUMMARIZER_OUTPUT"]["plan"]
+        ..., description=Prompts.descriptions["RESUME_OBJECTIVE_OUTPUT"]["plan"]
     )
     additional_steps: List[str] = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SUMMARIZER_OUTPUT"]["additional_steps"],
+        description=Prompts.descriptions["RESUME_OBJECTIVE_OUTPUT"]["additional_steps"],
     )
     work: List[str] = Field(
-        ..., description=Prompts.descriptions["RESUME_SUMMARIZER_OUTPUT"]["work"]
+        ..., description=Prompts.descriptions["RESUME_OBJECTIVE_OUTPUT"]["work"]
     )
     final_answer: str = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SUMMARIZER_OUTPUT"]["final_answer"],
+        description=Prompts.descriptions["RESUME_OBJECTIVE_OUTPUT"]["final_answer"],
     )
 
 class ResumeImprovements(BaseModel):
@@ -88,7 +88,7 @@ class ResumeImprovements(BaseModel):
     section: str = Field(
         ...,
         enum=[
-            "summary",
+            "objective",
             "education",
             "experience",
             "skills",

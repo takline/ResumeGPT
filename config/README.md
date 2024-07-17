@@ -23,16 +23,3 @@ Specifies the configuration for the language model:
 
 ### OpenAI API Key
 Ensures the presence of the OpenAI API key in the environment. If the key is not found, the user is prompted to enter it.
-
-## config.ini
-
-The `config.ini` file is where users provide their resume information and other personal details. This file includes the following sections:
-
-### [global]
-- `author`: The author's name.
-- `email`: The author's email address.
-- `address`: The author's physical address.
-- `phone`: The author's phone number.
-- `github`: The author's GitHub profile URL.
-- `linkedin`: The author's LinkedIn profile URL.
-- `debug`: A flag to enable or disable debug mode.

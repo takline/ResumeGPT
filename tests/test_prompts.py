@@ -3,7 +3,7 @@ from langchain.schema import HumanMessage, SystemMessage
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from ..prompts.prompts import Prompts
 
-PROMPT_GROUPS = ["IMPROVER", "SECTION_HIGHLIGHTER", "SKILLS_MATCHER", "SUMMARY_WRITER"]
+PROMPT_GROUPS = ["IMPROVER", "SECTION_HIGHLIGHTER", "SKILLS_MATCHER", "OBJECTIVE_WRITER"]
 
 PROMPT_DESCRIPTIONS = [
     "JOB_DESCRIPTION",
@@ -14,7 +14,7 @@ PROMPT_DESCRIPTIONS = [
     "RESUME_SECTION_HIGHLIGHTER_OUTPUT",
     "RESUME_SKILLS",
     "RESUME_SKILLS_MATCHER_OUTPUT",
-    "RESUME_SUMMARIZER_OUTPUT",
+    "RESUME_OBJECTIVE_OUTPUT",
 ]
 
 

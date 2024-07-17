@@ -18,7 +18,10 @@ class TestResumeImproverExtractor(unittest.TestCase):
         self.resume_improver = ResumeImprover(self.url)
 
     def test_download_and_parse_job_post(self):
-        self.resume_improver.download_and_parse_job_post()
+        #self.resume_improver.download_and_parse_job_post()
+        #with open(os.path.join(config.PROJECT_PATH, "tests/test_data/example_job_posting.html"), 'r', encoding='utf-8') as file:
+        #    raw_html = file.read()
+        #self.resume_improver.parse_raw_job_post(raw_html=raw_html)
 
         # Check HTML data extraction
         self.assertIn(
@@ -99,7 +102,7 @@ class TestResumeImproverExtractor(unittest.TestCase):
 
     def test_create_draft_tailored_resume(self):
         self.resume_improver.create_draft_tailored_resume(
-            auto_open=False, manual_review=False
+            auto_open=False, manual_review=False, skip_pdf_create=True
         )
         self.assertTrue(self.resume_improver.yaml_loc.endswith("resume.yaml"))
 

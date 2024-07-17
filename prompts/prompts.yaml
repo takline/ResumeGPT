@@ -56,7 +56,7 @@ SKILLS_MATCHER:
       - Verify that skills are reflective of the <Resume> and not the <Job Posting>. Update if necessary.
       - Verify that all <Criteria> are met, and update if necessary.
       - Provide the answer to the <Instruction> with prefix <Final Answer>.
-SUMMARY_WRITER:
+OBJECTIVE_WRITER:
   system_message: >
       You are a talented analytics professional and Product Manager with an expertise in building user friendly and advanced tech products. You are renowned for your ability to explain complex subjects in simple yet effective terms. You have been tasked with re-writing resume sections for a great product manager. You have been tasked with re-writing a resume objective statement for a product manager. Your goal is to strictly follow all the provided <Steps> and meet all the given <Criteria>.
   job_posting_template: |
@@ -83,7 +83,7 @@ SUMMARY_WRITER:
       - Create a <Plan> for following the <Instruction> while meeting all the <Criteria>.
       - What <Additional Steps> are needed to follow the <Plan>?
       - Follow all steps one by one and show your <Work>.
-      - Verify that summary is reflective of my <Resume> and not the <Job Posting>. Update if necessary.
+      - Verify that objective is reflective of my <Resume> and not the <Job Posting>. Update if necessary.
       - Verify that all <Criteria> are met, and update if necessary.
       - Provide the answer to the <Instruction> with prefix <Final Answer>.
 
@@ -98,7 +98,7 @@ IMPROVER:
       The ideal candidate has the following skills:{technical_skills}
   resume_template: |
       <Resume>
-      Summary:{summary}
+      Objective:{objective}
       {experiences}
       {education}
       {skills}
