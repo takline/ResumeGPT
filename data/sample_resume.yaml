@@ -2,18 +2,12 @@ editing: true
 debug: false
 basic:
   name: John Doe
-  address:
-    - Los Angeles, CA
-  contact:
-    email: johndoe@example.com
-    phone: 555-123-4567
+  address: Los Angeles, CA
+  email: johndoe@example.com
+  phone: 555-123-4567
   websites:
-    - text: LinkedIn
-      url: https://linkedin.com/johndoe
-      icon: linkedin
-    - text: GitHub
-      url: https://github.com/johndoe
-      icon: github
+      - https://linkedin.com/johndoe
+      - https://github.com/johndoe
 
 objective: A Software Engineer with over 8 years of experience in full-stack development, cloud computing, and software architecture. Proven track record in developing scalable web applications and leading engineering teams to success. Proficient in JavaScript, Python, AWS, and Docker. Passionate about building innovative solutions and driving technological advancements.
 

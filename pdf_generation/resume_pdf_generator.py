@@ -271,32 +271,20 @@ class ResumePDFGenerator:
             job_data_location (str): The path where the PDF will be saved.
             data (dict): The JSON data containing resume information.
         """
-        email = data["basic"]["contact"]["email"]
+        email = data["basic"]["email"]
         name = data["basic"]["name"]
-        phone = data["basic"]["contact"]["phone"]
+        phone = data["basic"]["phone"]
 
+        info = f"{email} | {phone}"
         def clean_url(url):
             return (
                 url.replace("https://", "").replace("http://", "").replace("www.", "")
             )
+        for website in data["basic"]["websites"]:
+            info+=f" | {clean_url(website)}"
 
-        linkedin = next(
-            (
-                clean_url(site["url"])
-                for site in data["basic"]["websites"]
-                if site["icon"] == "linkedin"
-            ),
-            "",
-        )
-        github = next(
-            (
-                clean_url(site["url"])
-                for site in data["basic"]["websites"]
-                if site["icon"] == "github"
-            ),
-            "",
-        )
-        address = ", ".join(data["basic"]["address"])
+        address = data["basic"]["address"]
+        info+= f" | {address}"
         doc, pdf_location = resume_pdf_styles.generate_doc_template(
             name, job_data_location
         )
@@ -324,7 +312,7 @@ class ResumePDFGenerator:
             row_index=row_index,
             content_style_map=[
                 (
-                    f"{email} | {phone} | {linkedin} | {github} | {address}",
+                    info,
                     resume_pdf_styles.PARAGRAPH_STYLES["contact"],
                 )
             ],
