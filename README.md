@@ -128,12 +128,15 @@ You will follow the same workflow when using ResumeGPT's BackgroundRunner (ex: v
 
 
 ### ResumeGPT PDF Output
-Here is an example ATS friendly resume created by ResumeGPT:
+Example ATS friendly resume created by ResumeGPT:
 
 ```python
 pdf_generator = ResumeGPT.pdf_generation.ResumePDFGenerator()
 pdf_generator.generate_resume("/path/to/save/pdf/", ResumeGPT.utils.read_yaml(filename="/path/to/resume/resume.yaml"))
-```python
+```
+
+
+
 
 <p align="center">
   <img src="images/example_resume_output.png" alt="Resume Example" width="400"/>
