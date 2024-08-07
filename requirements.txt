@@ -1,9 +1,9 @@
 beautifulsoup4>=4.9.3
 configparser>=5.0.2
-langchain>=0.0.1
-langchain-openai>=0.0.1
-langchain-core>=0.0.1
-pydantic>=1.8.2
+langchain==0.1.20
+langchain-openai==0.1.6
+langchain-core==0.1.52
+pydantic==2.7.1
 reportlab>=3.5.59
 requests>=2.25.1
 ruamel.yaml>=0.16.12

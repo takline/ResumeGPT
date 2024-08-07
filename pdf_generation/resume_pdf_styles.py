@@ -72,7 +72,7 @@ PARAGRAPH_STYLES = {
         justifyLastLine=0,
     ),
     "last_bullet_point": ParagraphStyle(
-        name="bullet_points_paragraph",
+        name="last_bullet_point",
         leftIndent=12,
         fontName=FONT_NAMES["regular"],
         fontSize=11,

@@ -131,35 +131,49 @@ class ResumePDFGenerator:
         for idx, job in enumerate(experiences):
             # Create a duration string from startdate and enddate
             duration = f"{job['titles'][0]['startdate']}-{job['titles'][0]['enddate']}"
+            if job['skip_name']:
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            job["titles"][0]["name"],
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_title"],
+                        ),
+                        (duration, resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                    ],
+                )
 
-            row_index = self._add_table_row(
-                table_data=table_data,
-                table_styles=table_styles,
-                row_index=row_index,
-                content_style_map=[
-                    (
-                        job["company"],
-                        resume_pdf_styles.PARAGRAPH_STYLES["company_heading"],
-                    ),
-                    (duration, resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
-                ],
-            )
+            else:
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            job["company"],
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_heading"],
+                        ),
+                        (duration, resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                    ],
+                )
 
-            row_index = self._add_table_row(
-                table_data=table_data,
-                table_styles=table_styles,
-                row_index=row_index,
-                content_style_map=[
-                    (
-                        job["titles"][0]["name"],
-                        resume_pdf_styles.PARAGRAPH_STYLES["company_title"],
-                    ),
-                    (
-                        job["location"],
-                        resume_pdf_styles.PARAGRAPH_STYLES["company_location"],
-                    ),
-                ],
-            )
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            job["titles"][0]["name"],
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_title"],
+                        ),
+                        (
+                            job["location"],
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_location"],
+                        ),
+                    ],
+                )
 
             for i, bullet_point in enumerate(job["highlights"]):
                 style = (

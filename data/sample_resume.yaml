@@ -23,6 +23,7 @@ education:
 
 experiences:
 - company: Tech Innovators Inc.
+  skip_name: false #if this is set to true, only the title and duration will be added
   location: San Francisco, CA
   titles:
   - name: Lead Software Engineer
@@ -35,6 +36,7 @@ experiences:
       - Spearheaded the integration of AI-driven features, enhancing product capabilities and user satisfaction.
 
 - company: Web Solutions LLC
+  skip_name: false
   location: San Francisco, CA
   titles:
   - name: Senior Full-Stack Developer
@@ -47,6 +49,7 @@ experiences:
       - Automated deployment processes, cutting release times by 50%.
 
 - company: CloudTech
+  skip_name: false
   location: San Francisco, CA
   titles:
   - name: Software Engineer
@@ -59,6 +62,7 @@ experiences:
       - Contributed to the development of a scalable cloud infrastructure, supporting rapid business growth.
 
 - company: Data Insights Corp.
+  skip_name: false
   location: San Francisco, CA
   titles:
   - name: Junior Developer

@@ -25,6 +25,7 @@ def check_resume_format(yaml_file_path: str) -> bool:
         "experiences": [
             {
                 "company": str,
+                "skip_name": bool,
                 "location": str,
                 "titles": [
                     {
@@ -62,6 +63,7 @@ def check_resume_format(yaml_file_path: str) -> bool:
           - M.S. Computer Science""",
         "experiences": """experiences:
   - company: Tech Innovators Inc.
+    skip_name: false
     location: San Francisco, CA
     titles:
       - name: Lead Software Engineer

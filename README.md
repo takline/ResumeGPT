@@ -51,7 +51,18 @@ ResumeGPT allows you to simply provide your resume and a job posting link, and i
 - Allows for user verification and customization before finalizing the resume.
 
 ## Installation
-To install ResumeGPT, clone the repository and install the required dependencies:
+
+```bash
+pip install ResumeGPT
+```
+
+or:
+
+```bash
+pip install git+https://github.com/takline/ResumeGPT.git
+```
+
+or:
 
 ```bash
 git clone https://github.com/takline/ResumeGPT.git
@@ -124,16 +135,43 @@ first_resume_improver = background_runner["ResumeImprovers"][0]
 
 You will follow the same workflow when using ResumeGPT's BackgroundRunner (ex: verify the resume updates via `editing=false` in each `ResumeGPT/data/[Company_Name_Job_Title]/resume.yaml` file). You can also find logs for the BackgroundRunner in `ResumeGPT/data/background_tasks/tasks.log`.
 
+Once all of the background tasks are complete:
 
+```python
+background_runner["background_runner"].check_status()
+```
+
+Output:
+```
+['Task completed.',
+ 'Task completed.',
+ 'Task completed.',
+ 'Task completed.',
+ 'Task completed.',
+ 'Task completed.',
+ 'Task completed.',
+ 'Task completed.',
+ 'Task completed.']
+```
+
+Create the pdf for each `ResumeImprovers` instance:
+
+```python
+for improver in background_runner["ResumeImprovers"]:
+    pdf_generator = ResumeGPT.pdf_generation.ResumePDFGenerator()
+    resume_yaml_path = os.path.join(improver.job_data_location, "resume.yaml")
+    pdf_generator.generate_resume(improver.job_data_location, ResumeGPT.utils.read_yaml(filename=resume_yaml_path))
+```
 
 
 ### ResumeGPT PDF Output
-Here is an example ATS friendly resume created by ResumeGPT:
+Example ATS friendly resume created by ResumeGPT:
 
 ```python
 pdf_generator = ResumeGPT.pdf_generation.ResumePDFGenerator()
 pdf_generator.generate_resume("/path/to/save/pdf/", ResumeGPT.utils.read_yaml(filename="/path/to/resume/resume.yaml"))
-```python
+```
+
 
 <p align="center">
   <img src="images/example_resume_output.png" alt="Resume Example" width="400"/>
