@@ -31,6 +31,8 @@
 
 </p>
 
+
+
 <br>
 
 
@@ -63,6 +65,7 @@ pip install git+https://github.com/takline/ResumeGPT.git
 ```
 
 or:
+
 
 ```bash
 git clone https://github.com/takline/ResumeGPT.git
@@ -189,6 +192,5 @@ Feel free to give feedback, ask questions, report a bug, or suggest improvements
 
 ##  Contributors
 ⭐️  Please star, fork, explore, and contribute to ResumeGPT. There's a lot of work room for improvement so any contributions are appreciated.
-
 
 
