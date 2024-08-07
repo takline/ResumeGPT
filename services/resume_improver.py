@@ -630,66 +630,10 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             str: The file path to the generated PDF.
         """
-        parsed_yaml = utils.read_yaml(filename=self.yaml_loc)
-
-        def extract_education(education):
-            """Extract education details from the resume.
-
-            Args:
-                education (list): The education data.
-
-            Returns:
-                list: A list of dictionaries containing degree and school information.
-            """
-            return [
-                {"degree": degree, "school": edu["school"]}
-                for edu in education
-                for degree in edu["degrees"][0]["names"]
-            ]
-
-        def extract_experience(experiences):
-            """Extract experience details from the resume.
-
-            Args:
-                experiences (list): The experience data.
-
-            Returns:
-                list: A list of dictionaries containing title, company, location, duration, and description.
-            """
-            return [
-                {
-                    "title": title["name"],
-                    "company": exp["company"],
-                    "location": exp["location"],
-                    "duration": f"{title['startdate']}-{title['enddate']}",
-                    "description": exp["highlights"],
-                }
-                for exp in experiences
-                for title in exp["titles"]
-            ]
-
-        def extract_skills(skills):
-            """Extract skills details from the resume.
-
-            Args:
-                skills (list): The skills data.
-
-            Returns:
-                list: A list of formatted skills strings.
-            """
-            return [
-                f"{skill['category']}: {', '.join(skill['skills'])}" for skill in skills
-            ]
-
-        result = {
-            "education": extract_education(parsed_yaml.get("education", [])),
-            "objective": parsed_yaml.get("objective", ""),
-            "experiences": extract_experience(parsed_yaml.get("experiences", [])),
-            "skills": extract_skills(parsed_yaml.get("skills", [])),
-        }
         pdf_generator = ResumePDFGenerator()
         pdf_location = pdf_generator.generate_resume(
-            job_data_location=self.job_data_location, data=result
+            job_data_location=self.job_data_location,
+            data=utils.read_yaml(filename=self.yaml_loc),
         )
         if auto_open:
             subprocess.run(config.OPEN_FILE_COMMAND.split(" ") + [pdf_location])
