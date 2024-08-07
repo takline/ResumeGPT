@@ -28,7 +28,7 @@ dependencies = [
     "pytest>=8.2.2",
     "free-proxy>=1.1.1"
 ]
-keywords = ["resume", "job", "application", "automation"]
+keywords = ["resume", "job", "application", "automation", "job search"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3"
