@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ResumeGPT"
-version = "1.4"
+version = "2.0"
 description = "Tailor your resume to match any job posting effortlessly"
 authors = [
     { name = "Tyler Kline", email = "tylerkline@gmail.com" }
@@ -26,7 +26,10 @@ dependencies = [
     "requests>=2.25.1",
     "ruamel.yaml>=0.16.12",
     "pytest>=8.2.2",
-    "free-proxy>=1.1.1"
+    "free-proxy>=1.1.1",
+    "Jinja2==3.1.4",
+    "PyYAML==5.3.1",
+    "pytest-cov==5.0.0"
 ]
 keywords = ["resume", "job", "application", "automation", "job search"]
 classifiers = [

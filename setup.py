@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="ResumeGPT",
-    version="1.4",
+    version="2.0",
     description="A brief description of your project",
     author="Tyler Kline",
     author_email="tylerkline@gmail.com",
@@ -20,6 +20,9 @@ setup(
         "ruamel.yaml>=0.16.12",
         "pytest>=8.2.2",
         "free-proxy>=1.1.1",
+        "Jinja2==3.1.4",
+        "PyYAML==5.3.1",
+        "pytest-cov==5.0.0"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
