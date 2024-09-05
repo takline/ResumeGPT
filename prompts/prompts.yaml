@@ -48,6 +48,7 @@ SKILLS_MATCHER:
       - Technical skills are programming languages, technologies, and tools. Examples: Python, Excel, SQL, Snowflake, Data Science, Machine learning, etc.
       - Non-technical skills are soft skills. Communication, Leadership, Adaptability, Teamwork, Problem solving, Critical thinking, Time management.
       - Each skill must be written in sentence case.
+      - No skills should be included more than once.
   steps_message:  |
       <Steps>
       - Create a <Plan> for following the <Instruction> while meeting all the <Criteria>.
@@ -109,6 +110,7 @@ IMPROVER:
       - Find any spelling or grammar errors in my <Resume>, and include suggestions to fix them.
       - Find any keywords that may be triggered by ATS screening that are missing from the resume and include suggestions to add them.
       - Find any resume items that appear like lazy 'copy and paste' items from the job posting and include suggestions to fix them.
+      - Find any duplicate skills or resume experiences and include suggestions to de-duplicate them.
       - Compile all your suggestions from <Work> into the <Final Answer>.
       - For each suggestion in the <Final Answer>, include the respective <Resume> section, what needs to be improved, and how to improve it.
       - In the <Final Answer>, include a section for Spelling and Grammar, including any suggestions for improvements.

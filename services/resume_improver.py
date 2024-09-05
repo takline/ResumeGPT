@@ -67,6 +67,9 @@ class ResumeImprover(ExtractorLLM):
         self.experiences = utils.get_dict_field(
             field="experiences", data_dict=self.resume
         )
+        self.projects = utils.get_dict_field(
+            field="projects", data_dict=self.resume
+        )
         self.skills = utils.get_dict_field(field="skills", data_dict=self.resume)
         self.objective = utils.get_dict_field(field="objective", data_dict=self.resume)
 
@@ -213,6 +216,8 @@ class ResumeImprover(ExtractorLLM):
         self.objective = self.write_objective(verbose=False)
         config.logger.info("Updating bullet points...")
         self.experiences = self.rewrite_unedited_experiences(verbose=False)
+        config.logger.info("Updating projects...")
+        self.projects = self.rewrite_unedited_projects(verbose=False)
         config.logger.info("Done updating...")
         self.yaml_loc = os.path.join(self.job_data_location, "resume.yaml")
         resume_dict = dict(
@@ -221,6 +226,7 @@ class ResumeImprover(ExtractorLLM):
             objective=self.objective,
             education=self.education,
             experiences=self.experiences,
+            projects=self.projects,
             skills=self.skills,
         )
         utils.write_yaml(resume_dict, filename=self.yaml_loc)
@@ -254,6 +260,8 @@ class ResumeImprover(ExtractorLLM):
         self.objective = self.write_objective(verbose=False)
         logger.info("Updating bullet points...")
         self.experiences = self.rewrite_unedited_experiences(verbose=False)
+        logger.info("Updating projects...")
+        self.projects = self.rewrite_unedited_projects(verbose=False)
         logger.info("Done updating...")
         self.yaml_loc = os.path.join(self.job_data_location, "resume.yaml")
         resume_dict = dict(
@@ -262,6 +270,7 @@ class ResumeImprover(ExtractorLLM):
             objective=self.objective,
             education=self.education,
             experiences=self.experiences,
+            projects=self.projects,
             skills=self.skills,
         )
         utils.write_yaml(resume_dict, filename=self.yaml_loc)
@@ -306,46 +315,38 @@ class ResumeImprover(ExtractorLLM):
             )
         return output
 
-    def _section_highlighter_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for highlighting relevant resume sections.
+    def _get_formatted_chain_inputs(self, chain, section=None):
+        if section is not None:
+            formatted_prompt = format_prompt_inputs_as_strings(
+                prompt_inputs=chain.input_schema().dict(),
+                **self.parsed_job,
+                degrees=self.degrees,
+                experiences=self._format_experiences_for_prompt(),
+                projects=self._format_projects_for_prompt(),
+                education=utils.dict_to_yaml_string(dict(Education=self.education)),
+                skills=self._format_skills_for_prompt(),
+                objective=self.objective,
+                section=section
+            )
+        else:
+            formatted_prompt = format_prompt_inputs_as_strings(
+                prompt_inputs=chain.input_schema().dict(),
+                **self.parsed_job,
+                degrees=self.degrees,
+                experiences=self._format_experiences_for_prompt(),
+                projects=self._format_projects_for_prompt(),
+                education=utils.dict_to_yaml_string(dict(Education=self.education)),
+                skills=self._format_skills_for_prompt(),
+                objective=self.objective,
+            )
+        return formatted_prompt
+
+    def _chain_updater(self, prompt_msgs, **chain_kwargs) -> RunnableSequence:
+        """Create a chain based on the prompt messages.
 
         Returns:
-            RunnableSequence: The chain for highlighting resume sections.
+            RunnableSequence: The chain for highlighting resume sections, matching skills, or improving resume content.
         """
-        prompt_msgs = Prompts.lookup["SECTION_HIGHLIGHTER"]
-        prompt = ChatPromptTemplate(messages=prompt_msgs)
-        llm = create_llm(**self.llm_kwargs)
-        return prompt | llm | StrOutputParser()
-
-    def _skills_matcher_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for matching skills from the resume to the job posting.
-
-        Returns:
-            RunnableSequence: The chain for matching skills.
-        """
-        prompt_msgs = Prompts.lookup["SKILLS_MATCHER"]
-        prompt = ChatPromptTemplate(messages=prompt_msgs)
-        llm = create_llm(**self.llm_kwargs)
-        return prompt | llm | StrOutputParser()
-
-    def _objective_writer_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for writing a compelling resume objective.
-
-        Returns:
-            RunnableSequence: The chain for writing the resume objective.
-        """
-        prompt_msgs = Prompts.lookup["OBJECTIVE_WRITER"]
-        prompt = ChatPromptTemplate(messages=prompt_msgs)
-        llm = create_llm(**self.llm_kwargs)
-        return prompt | llm | StrOutputParser()
-
-    def _improver_chain(self, **chain_kwargs) -> RunnableSequence:
-        """Create a chain for critiquing and improving the resume.
-
-        Returns:
-            RunnableSequence: The chain for critiquing and improving the resume.
-        """
-        prompt_msgs = Prompts.lookup["IMPROVER"]
         prompt = ChatPromptTemplate(messages=prompt_msgs)
         llm = create_llm(**self.llm_kwargs)
         return prompt | llm | StrOutputParser()
@@ -368,7 +369,7 @@ class ResumeImprover(ExtractorLLM):
                     result.append(degree["names"])
         return result
 
-    def _format_skills_for_prompt(self, skills: list) -> list:
+    def _format_skills_for_prompt(self) -> list:
         """Format skills for inclusion in a prompt.
 
         Args:
@@ -378,7 +379,7 @@ class ResumeImprover(ExtractorLLM):
             list: A formatted list of skills.
         """
         result = []
-        for cat in skills:
+        for cat in self.skills:
             curr = ""
             if cat.get("category", ""):
                 curr += f"{cat['category']}: "
@@ -419,6 +420,24 @@ class ResumeImprover(ExtractorLLM):
             if "titles" in exp:
                 exp_time = self._get_cumulative_time_from_titles(exp["titles"])
                 curr += f"{exp_time} years experience in:"
+            if "highlights" in exp:
+                curr += format_list_as_string(exp["highlights"], list_sep="\n  - ")
+                curr += "\n"
+                result.append(curr)
+        return result
+
+    def _format_projects_for_prompt(self) -> list:
+        """Format projects for inclusion in a prompt.
+
+        Returns:
+            list: A formatted list of projects.
+        """
+        result = []
+        for exp in self.projects:
+            curr = ""
+            if "name" in exp:
+                name = exp["name"]
+                curr += f"Side Project: {name}"
             if "highlights" in exp:
                 curr += format_list_as_string(exp["highlights"], list_sep="\n  - ")
                 curr += "\n"
@@ -474,17 +493,8 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The rewritten section.
         """
-        chain = self._section_highlighter_chain(**chain_kwargs)
-        chain_inputs = format_prompt_inputs_as_strings(
-            prompt_inputs=chain.input_schema().dict(),
-            **self.parsed_job,
-            degrees=self.degrees,
-            experiences=utils.dict_to_yaml_string(dict(Experiences=self.experiences)),
-            education=utils.dict_to_yaml_string(dict(Education=self.education)),
-            skills=self._format_skills_for_prompt(self.skills),
-            objective=self.objective,
-        )
-        chain_inputs["section"] = section
+        chain = self._chain_updater(Prompts.lookup["SECTION_HIGHLIGHTER"], **chain_kwargs)
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain, section=section)
         section_revised_unformatted = chain.invoke(chain_inputs)
         section_revised = self.extract_from_input(
             pydantic_object=ResumeSectionHighlighterOutput,
@@ -511,6 +521,22 @@ class ResumeImprover(ExtractorLLM):
             result.append(exp)
         return result
 
+    def rewrite_unedited_projects(self, **chain_kwargs) -> dict:
+        """Rewrite unedited projects in the resume.
+
+        Args:
+            **chain_kwargs: Additional keyword arguments for the chain.
+
+        Returns:
+            dict: The rewritten projects.
+        """
+        result = []
+        for exp in self.projects:
+            exp = dict(exp)
+            exp["highlights"] = self.rewrite_section(section=exp, **chain_kwargs)
+            result.append(exp)
+        return result
+
     def extract_matched_skills(self, **chain_kwargs) -> dict:
         """Extract matched skills from the resume and job post.
 
@@ -520,16 +546,9 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The extracted skills.
         """
-        chain = self._skills_matcher_chain(**chain_kwargs)
-        chain_inputs = format_prompt_inputs_as_strings(
-            prompt_inputs=chain.input_schema().dict(),
-            **self.parsed_job,
-            degrees=self.degrees,
-            experiences=utils.dict_to_yaml_string(dict(Experiences=self.experiences)),
-            education=utils.dict_to_yaml_string(dict(Education=self.education)),
-            skills=self._format_skills_for_prompt(self.skills),
-            objective=self.objective,
-        )
+
+        chain = self._chain_updater(Prompts.lookup["SKILLS_MATCHER"], **chain_kwargs)
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
         extracted_skills_unformatted = chain.invoke(chain_inputs)
         extracted_skills = self.extract_from_input(
             pydantic_object=ResumeSkillsMatcherOutput,
@@ -562,16 +581,9 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The written objective.
         """
-        chain = self._objective_writer_chain(**chain_kwargs)
-        chain_inputs = format_prompt_inputs_as_strings(
-            prompt_inputs=chain.input_schema().dict(),
-            **self.parsed_job,
-            degrees=self.degrees,
-            experiences=utils.dict_to_yaml_string(dict(Experiences=self.experiences)),
-            education=utils.dict_to_yaml_string(dict(Education=self.education)),
-            skills=self._format_skills_for_prompt(self.skills),
-            objective=self.objective,
-        )
+        chain = self._chain_updater(Prompts.lookup["OBJECTIVE_WRITER"], **chain_kwargs)
+
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
         objective_unformatted = chain.invoke(chain_inputs)
         objective = self.extract_from_input(
             pydantic_object=ResumeSummarizerOutput, input=objective_unformatted
@@ -589,16 +601,8 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The suggested improvements.
         """
-        chain = self._improver_chain(**chain_kwargs)
-        chain_inputs = format_prompt_inputs_as_strings(
-            prompt_inputs=chain.input_schema().dict(),
-            **self.parsed_job,
-            degrees=self.degrees,
-            experiences=utils.dict_to_yaml_string(dict(Experiences=self.experiences)),
-            education=utils.dict_to_yaml_string(dict(Education=self.education)),
-            skills=self._format_skills_for_prompt(self.skills),
-            objective=self.objective,
-        )
+        chain = self._chain_updater(Prompts.lookup["IMPROVER"], **chain_kwargs)
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
         improvements_unformatted = chain.invoke(chain_inputs)
         improvements = self.extract_from_input(
             pydantic_object=ResumeImproverOutput, input=improvements_unformatted
@@ -618,6 +622,7 @@ class ResumeImprover(ExtractorLLM):
             objective=self.objective,
             education=self.education,
             experiences=self.experiences,
+            projects=self.projects,
             skills=self.skills,
         )
 

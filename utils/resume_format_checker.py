@@ -37,6 +37,16 @@ def check_resume_format(yaml_file_path: str) -> bool:
                 "highlights": [str],
             }
         ],
+        "projects": [
+            {
+                "name": str,
+                "hyperlink": bool,
+                "show_link": bool,
+                "date": str,
+                "link": str,
+                "highlights": [str],
+            }
+        ],
         "skills": [{"category": str, "skills": [str]}],
     }
     
@@ -74,6 +84,19 @@ def check_resume_format(yaml_file_path: str) -> bool:
       - Implemented a microservices architecture, reducing system downtime by 30%.
       - Mentored a team of junior developers, fostering a culture of continuous learning and improvement.
       - Spearheaded the integration of AI-driven features, enhancing product capabilities and user satisfaction.""",
+      "projects":"""projects:
+- name: Example Github Project
+  link: https://www.github.com/username/project
+  date: Jan 2024
+  hyperlink: false
+  show_link: false
+  highlights:
+      - Developed a full-stack web application using React and Node.js, showcasing a dynamic portfolio with real-time updates.
+      - Implemented CI/CD pipelines using GitHub Actions, ensuring seamless deployment and integration.
+      - Integrated third-party APIs for enhanced functionality, including payment processing and social media sharing.
+      - Wrote comprehensive documentation and unit tests, ensuring code quality and ease of collaboration.
+      - Conducted code reviews and collaborated with open-source contributors, fostering a community-driven development process.
+      - Achieved over 1,000 stars on GitHub, demonstrating the project's popularity and utility within the developer community.""",
         "skills": """skills:
   - category: Technical
     skills:
@@ -163,6 +186,10 @@ def check_resume_format(yaml_file_path: str) -> bool:
         if main_key == "experiences":
             entry_index = path.split('/')[2].split('[')[-1][:-1]
             consolidated_errors[main_key]["entries"].append(f"experiences[{entry_index}]")
+            
+        if main_key == "projects":
+            entry_index = path.split('/')[2].split('[')[-1][:-1]
+            consolidated_errors[main_key]["entries"].append(f"projects[{entry_index}]")
         
         if actual == "missing":
             consolidated_errors[main_key]["missing"].append(sub_key)
@@ -177,9 +204,15 @@ def check_resume_format(yaml_file_path: str) -> bool:
             if main_key == "experiences" and issues["entries"]:
                 entries = ", ".join(set(issues["entries"]))
                 logger_error+=f"\nYou have formatting errors in these experiences entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
+            if main_key == "projects" and issues["entries"]:
+                entries = ", ".join(set(issues["entries"]))
+                logger_error+=f"\nYou have formatting errors in these projects entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
             if issues["missing"]:
                 missing_keys = ", ".join(issues["missing"])
-                logger_error+=f"\nYou are missing these keys: '{missing_keys}' in the '{main_key}' section. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
+                if main_key=="projects":
+                    logger_error+="The 'Projects' section is currently empty. This is not an issue, but just an FYI for your awareness."
+                else:
+                    logger_error+=f"\nYou are missing these keys: '{missing_keys}' in the '{main_key}' section. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
             if issues["incorrect"]:
                 for sub_key, actual_type, expected_type in issues["incorrect"]:
                     logger_error+=f"The value for '{sub_key}' in the '{main_key}' section is of type '{actual_type}'. \nExpected type: '{expected_type}'. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"

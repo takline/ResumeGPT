@@ -50,8 +50,6 @@ JOB_DESCRIPTION:
     Keywords that may be triggered by Applicant Tracking Systems (ATS), such as: Python, Cloud Computing, Agile, Data analytics, product management, cross-function collaboration, etc...
   is_fully_remote: >
     Does the job have an option to work fully (100%) remotely? Hybrid or partial remote is marked as `False`. Use `None` if the answer is not known.
-
-JOB_SKILLS:
   technical_skills: >
     An itemized list of technical skills, including programming languages, technologies, and tools.
   non_technical_skills: >

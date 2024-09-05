@@ -90,7 +90,8 @@ class ResumeImprovements(BaseModel):
         enum=[
             "objective",
             "education",
-            "experience",
+            "experiences",
+            "projects",
             "skills",
             "spelling and grammar",
             "other",

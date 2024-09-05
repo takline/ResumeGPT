@@ -3,10 +3,10 @@ from .. import config
 
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate
+from reportlab.platypus import SimpleDocTemplate, Paragraph
 
 
 def generate_doc_template(name, job_data_location):
@@ -60,6 +60,8 @@ FONT_NAMES = {
     "italic": "FONT_Italic",
 }
 
+sample_style_sheets = getSampleStyleSheet()
+
 PARAGRAPH_STYLES = {
     "bullet_points": ParagraphStyle(
         name="bullet_points_paragraph",
@@ -88,6 +90,19 @@ PARAGRAPH_STYLES = {
         textTransform="uppercase",
         alignment=TA_CENTER,
         leading=12,
+    ),
+    "link": ParagraphStyle(
+        name='Hyperlink',
+        fontName=FONT_NAMES["regular"],
+        fontSize=11,
+        parent=sample_style_sheets['BodyText'],
+        textColor=colors.blue,
+        underline=True,
+    ),
+    "link-no-hyperlink": ParagraphStyle(
+        name='Hyperlink',
+        fontName=FONT_NAMES["regular"],
+        fontSize=11,
     ),
     "normal": ParagraphStyle(
         name="normal_paragraph",

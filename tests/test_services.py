@@ -83,8 +83,18 @@ class TestResumeImproverExtractor(unittest.TestCase):
             "Expected company name not found",
         )
         self.assertIn(
-            "python",
+            "data",
             ", ".join(self.resume_improver.parsed_job.get("ats_keywords", [])).lower(),
+            "Expected ATS keyword 'python' not found",
+        )
+        self.assertIn(
+            "python",
+            ", ".join(self.resume_improver.parsed_job.get("technical_skills", [])).lower(),
+            "Expected ATS keyword 'python' not found",
+        )
+        self.assertIn(
+            "learn",
+            ", ".join(self.resume_improver.parsed_job.get("non_technical_skills", [])).lower(),
             "Expected ATS keyword 'python' not found",
         )
         self.assertIn(

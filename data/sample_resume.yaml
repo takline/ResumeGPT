@@ -74,6 +74,36 @@ experiences:
       - Collaborated with senior developers to troubleshoot and resolve technical issues.
       - Gained hands-on experience with various programming languages and frameworks.
 
+
+projects:
+- name: Example Github Project 1
+  link: https://www.github.com/username/project
+  hyperlink: true
+  show_link: true
+  date: Feb 2023
+  highlights:
+      - Developed a full-stack web application using React and Node.js, showcasing a dynamic portfolio with real-time updates.
+      - Implemented CI/CD pipelines using GitHub Actions, ensuring seamless deployment and integration.
+      - Achieved over 1,000 stars on GitHub, demonstrating the project's popularity and utility within the developer community.
+- name: Example Github Project 2
+  link: https://www.github.com/username/project
+  hyperlink: false
+  show_link: true
+  date: Jan 2024
+  highlights:
+      - Developed a full-stack web application using React and Node.js, showcasing a dynamic portfolio with real-time updates.
+      - Integrated third-party APIs for enhanced functionality, including payment processing and social media sharing.
+      - Conducted code reviews and collaborated with open-source contributors, fostering a community-driven development process.
+- name: Example Github Project 3
+  link: https://www.github.com/username/project
+  hyperlink: false
+  show_link: false
+  date: Dev 2021
+  highlights:
+      - Developed a full-stack web application using React and Node.js, showcasing a dynamic portfolio with real-time updates.
+      - Implemented CI/CD pipelines using GitHub Actions, ensuring seamless deployment and integration.
+      - Wrote comprehensive documentation and unit tests, ensuring code quality and ease of collaboration.
+
 skills:
   - category: Technical
     skills:

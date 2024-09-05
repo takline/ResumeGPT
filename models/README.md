@@ -17,11 +17,6 @@ Defines the structure of a job posting.
 - `qualifications` (Optional[List[str]]): Qualifications, skills, and experience required for the job as an itemized list.
 - `ats_keywords` (Optional[List[str]]): Keywords for Applicant Tracking Systems (ATS).
 - `is_fully_remote` (Optional[bool]): Does the job have an option to work fully (100%) remotely?
-
-### JobSkills
-Defines the structure of skills required for a job.
-
-**Fields**:
 - `technical_skills` (Optional[List[str]]): Itemized list of technical skills.
 - `non_technical_skills` (Optional[List[str]]): Itemized list of non-technical soft skills.
 

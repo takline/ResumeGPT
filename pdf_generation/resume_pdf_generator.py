@@ -176,6 +176,7 @@ class ResumePDFGenerator:
                 )
 
             for i, bullet_point in enumerate(job["highlights"]):
+                bullet_point = bullet_point.replace("'", "").replace('"', "").strip()
                 style = (
                     resume_pdf_styles.PARAGRAPH_STYLES["last_bullet_point"]
                     if i == len(job["highlights"]) - 1
@@ -200,6 +201,108 @@ class ResumePDFGenerator:
                 )
 
         return row_index
+
+    def add_projects(self, table_data, table_styles, row_index, projects):
+        """
+        Add projects section to the resume.
+
+        Args:
+            table_data (list): The table data to be extended.
+            table_styles (list): The table styles to be extended.
+            row_index (int): The current row index in the table.
+            projects (list): The list of projects to be added.
+        """
+        row_index = self._add_table_row(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            content_style_map=[
+                ("Projects", resume_pdf_styles.PARAGRAPH_STYLES["section"])
+            ],
+            span=True,
+        )
+        self._append_section_table_style(table_styles, row_index - 1)
+
+        for idx, project in enumerate(projects):
+            project_name = project["name"]
+            raw_link = project["link"]
+            clean_link = raw_link.replace("https://", "").replace("http://", "").replace("www.", "")
+            if project["show_link"]:
+                if project["hyperlink"]:
+                    hyperlink_text = '<a href="%s">%s</a>'%(raw_link, clean_link)
+                    link_style = resume_pdf_styles.PARAGRAPH_STYLES["link"]
+                else:
+                    hyperlink_text = clean_link
+                    link_style = resume_pdf_styles.PARAGRAPH_STYLES["link-no-hyperlink"]
+                heading_style = resume_pdf_styles.PARAGRAPH_STYLES["company_heading"]
+                combined_style = ParagraphStyle(
+                    'combined_project_style',
+                    parent=heading_style,
+                    allowWidows=0,
+                    allowOrphans=0
+                )
+                link_color_hex = '#' +link_style.textColor.hexval()[2:]
+                paragraph_text = (
+                    f'<font name="{heading_style.fontName}" size="{heading_style.fontSize}">'
+                    f'{project_name}: </font>'
+                    f'<font name="{link_style.fontName}" size="{link_style.fontSize}" color="{link_color_hex}">'
+                    f'{hyperlink_text}</font>'
+                )
+
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            paragraph_text,
+                            combined_style
+                        ),
+                        (project["date"], resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                    ],
+                )
+            else:
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            project_name,
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_heading"]
+                        ),
+                        (project["date"], resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                    ],
+                )
+
+
+            for i, bullet_point in enumerate(project["highlights"]):
+                bullet_point = bullet_point.replace("'", "").replace('"', "").strip()
+                style = (
+                    resume_pdf_styles.PARAGRAPH_STYLES["last_bullet_point"]
+                    if i == len(project["highlights"]) - 1
+                    else resume_pdf_styles.PARAGRAPH_STYLES["bullet_points"]
+                )
+                padding = (0, 1)
+                if i == len(project["highlights"]) - 1:
+                    padding = (5, 1)
+                row_index = self._add_table_row(
+                    table_data=table_data,
+                    table_styles=table_styles,
+                    bullet_point="•",
+                    row_index=row_index,
+                    content_style_map=[
+                        (
+                            bullet_point,
+                            style,
+                        )
+                    ],
+                    span=True,
+                    padding=padding,
+                )
+
+        return row_index
+
 
     def add_education(self, table_data, table_styles, row_index, education):
         """
@@ -361,6 +464,13 @@ class ResumePDFGenerator:
             table_styles=table_styles,
             row_index=row_index,
             experiences=data["experiences"],
+        )
+        # Add projects
+        row_index = self.add_projects(
+            table_data=table_data,
+            table_styles=table_styles,
+            row_index=row_index,
+            projects=data["projects"],
         )
 
         # Add education

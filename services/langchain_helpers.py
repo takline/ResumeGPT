@@ -14,7 +14,7 @@ langchain.llm_cache = InMemoryCache()
 def create_llm(**kwargs):
     """Create an LLM instance with specified parameters."""
     chat_model = kwargs.pop("chat_model", ChatOpenAI)
-    kwargs.setdefault("model_name", "gpt-4o")
+    kwargs.setdefault("model_name", config.MODEL_NAME)
     kwargs.setdefault("cache", False)
     return chat_model(**kwargs)
 
@@ -45,6 +45,16 @@ def parse_date(date_str: str) -> datetime:
 
 
 def datediff_years(start_date: str, end_date: str) -> float:
-    """Get difference between arbitrarily formatted dates in fractional years to the floor month."""
+    """Get difference between arbitrarily formatted dates in fractional years to the floor month.
+    
+    Args:
+        start_date (str): The start date in string format.
+        end_date (str): The end date in string format. Can be "Present" to use the current date.
+    
+    Returns:
+        float: The difference in years, including fractional years.
+    """
+    if isinstance(end_date, str) and end_date.lower() == "present":
+        end_date = datetime.today().strftime("%Y-%m-%d")
     datediff = relativedelta(parse_date(end_date), parse_date(start_date))
     return datediff.years + datediff.months / 12.0

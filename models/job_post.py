@@ -35,16 +35,13 @@ class JobDescription(BaseModel):
     is_fully_remote: Optional[bool] = Field(
         None, description=Prompts.descriptions["JOB_DESCRIPTION"]["is_fully_remote"]
     )
-
-class JobSkills(BaseModel):
-    """Skills from a job posting."""
-
     technical_skills: Optional[List[str]] = Field(
-        None, description=Prompts.descriptions["JOB_SKILLS"]["technical_skills"]
+        None, description=Prompts.descriptions["JOB_DESCRIPTION"]["technical_skills"]
     )
     non_technical_skills: Optional[List[str]] = Field(
-        None, description=Prompts.descriptions["JOB_SKILLS"]["non_technical_skills"]
+        None, description=Prompts.descriptions["JOB_DESCRIPTION"]["non_technical_skills"]
     )
+
 
 class JobPost(ExtractorLLM):
     def __init__(self, posting: str):
@@ -55,11 +52,7 @@ class JobPost(ExtractorLLM):
 
     def parse_job_post(self, **chain_kwargs) -> dict:
         """Parse the job posting to extract job description and skills."""
-        parsed_job = self.extract_from_input(
+        self.parsed_job = self.extract_from_input(
             pydantic_object=JobDescription, input=self.posting, **chain_kwargs
         )
-        job_skills = self.extract_from_input(
-            pydantic_object=JobSkills, input=self.posting, **chain_kwargs
-        )
-        self.parsed_job = {**parsed_job, **job_skills}
         return self.parsed_job
