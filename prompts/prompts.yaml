@@ -9,14 +9,14 @@ SECTION_HIGHLIGHTER:
       Keywords that may be triggered by Applicant Tracking Systems (ATS) that should be added (if applicable): {ats_keywords}
       The ideal candidate has the following skills:{technical_skills}
       {non_technical_skills}
-  master_resume_template: |
-      <Master Resume>{section}
+  resume_template: |
+      <Resume>{section}
   instruction_message: |
-      <Instruction> Identify the relevant portions from the <Master Resume> that match the <Job Posting>, rephrase these relevant portions into highlights, and rate the relevance of each highlight to the <Job Posting> on a scale of 1-5.
+      <Instruction> Identify the relevant portions from the <Resume> that match the <Job Posting>, rephrase these relevant portions into highlights, and rate the relevance of each highlight to the <Job Posting> on a scale of 1-5.
   criteria_message: |
       <Criteria> 
-      - Each highlight must be based on what is mentioned in the <Master Resume>. 
-      - In each highlight, include how that experience in the <Master Resume> demonstrates an ability to perform duties mentioned in the <Job Posting>.
+      - Each highlight must be based on what is mentioned in the <Resume>. 
+      - In each highlight, include how that experience in the <Resume> demonstrates an ability to perform duties mentioned in the <Job Posting>.
       - In each highlight, try to include action verbs, give tangible and concrete examples, and include success metrics when available.
       - Grammar, spellings, and sentence structure must be correct.
   steps_message: |
@@ -24,7 +24,7 @@ SECTION_HIGHLIGHTER:
       - Create a <Plan> for following the <Instruction> while meeting all the <Criteria>.
       - What <Additional Steps> are needed to follow the <Plan>?
       - Follow all steps one by one and show your <Work>.
-      - Verify that highlights are reflective of the <Master Resume> and not the <Job Posting>. Update if necessary.
+      - Verify that highlights are reflective of the <Resume> and not the <Job Posting>. Update if necessary.
       - Verify that all <Criteria> are met, and update if necessary.
       - Provide the answer to the <Instruction> with prefix <Final Answer>.
 

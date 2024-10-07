@@ -39,7 +39,7 @@ class Prompts:
                     sub_data["job_posting_template"]
                 ),
                 HumanMessagePromptTemplate.from_template(
-                    sub_data.get("master_resume_template", "")
+                    sub_data.get("resume_template", "")
                 ),
                 HumanMessage(content=sub_data["instruction_message"]),
                 HumanMessage(content=sub_data["criteria_message"]),

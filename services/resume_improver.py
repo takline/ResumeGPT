@@ -18,7 +18,6 @@ from ..models.resume import (
 from .. import utils
 from .. import config
 from .langchain_helpers import *
-from .extractor import ExtractorLLM
 from ..prompts import Prompts
 from ..models.job_post import JobPost
 from ..pdf_generation import ResumePDFGenerator
@@ -29,7 +28,7 @@ from ..config import config
 from .background_runner import BackgroundRunner
 
 
-class ResumeImprover(ExtractorLLM):
+class ResumeImprover:
 
     def __init__(self, url, resume_location=None, llm_kwargs: dict = None):
         """Initialize ResumeImprover with the job post URL and optional resume location.
@@ -48,7 +47,6 @@ class ResumeImprover(ExtractorLLM):
         self.parsed_job = None
         self.llm_kwargs = llm_kwargs or {}
         self.editing = False
-        self.text_area = None
         self.clean_url = None
         self.job_data_location = None
         self.yaml_loc = None
@@ -67,9 +65,7 @@ class ResumeImprover(ExtractorLLM):
         self.experiences = utils.get_dict_field(
             field="experiences", data_dict=self.resume
         )
-        self.projects = utils.get_dict_field(
-            field="projects", data_dict=self.resume
-        )
+        self.projects = utils.get_dict_field(field="projects", data_dict=self.resume)
         self.skills = utils.get_dict_field(field="skills", data_dict=self.resume)
         self.objective = utils.get_dict_field(field="objective", data_dict=self.resume)
 
@@ -316,32 +312,20 @@ class ResumeImprover(ExtractorLLM):
         return output
 
     def _get_formatted_chain_inputs(self, chain, section=None):
+        output_dict = {}
+        raw_self_data = self.__dict__
         if section is not None:
-            formatted_prompt = format_prompt_inputs_as_strings(
-                prompt_inputs=chain.input_schema().dict(),
-                **self.parsed_job,
-                degrees=self.degrees,
-                experiences=self._format_experiences_for_prompt(),
-                projects=self._format_projects_for_prompt(),
-                education=utils.dict_to_yaml_string(dict(Education=self.education)),
-                skills=self._format_skills_for_prompt(),
-                objective=self.objective,
-                section=section
+            raw_self_data = raw_self_data.copy()
+            raw_self_data["section"] = section
+        for key in chain.get_input_schema().schema()["required"]:
+            output_dict[key] = chain_formatter(
+                key, raw_self_data.get(key) or self.parsed_job.get(key)
             )
-        else:
-            formatted_prompt = format_prompt_inputs_as_strings(
-                prompt_inputs=chain.input_schema().dict(),
-                **self.parsed_job,
-                degrees=self.degrees,
-                experiences=self._format_experiences_for_prompt(),
-                projects=self._format_projects_for_prompt(),
-                education=utils.dict_to_yaml_string(dict(Education=self.education)),
-                skills=self._format_skills_for_prompt(),
-                objective=self.objective,
-            )
-        return formatted_prompt
+        return output_dict
 
-    def _chain_updater(self, prompt_msgs, **chain_kwargs) -> RunnableSequence:
+    def _chain_updater(
+        self, prompt_msgs, pydantic_object, **chain_kwargs
+    ) -> RunnableSequence:
         """Create a chain based on the prompt messages.
 
         Returns:
@@ -349,7 +333,8 @@ class ResumeImprover(ExtractorLLM):
         """
         prompt = ChatPromptTemplate(messages=prompt_msgs)
         llm = create_llm(**self.llm_kwargs)
-        return prompt | llm | StrOutputParser()
+        runnable = prompt | llm.with_structured_output(schema=pydantic_object)
+        return runnable
 
     def _get_degrees(self, resume: dict):
         """Extract degrees from the resume.
@@ -367,81 +352,6 @@ class ResumeImprover(ExtractorLLM):
                     result.extend(degree["names"])
                 elif isinstance(degree["names"], str):
                     result.append(degree["names"])
-        return result
-
-    def _format_skills_for_prompt(self) -> list:
-        """Format skills for inclusion in a prompt.
-
-        Args:
-            skills (list): The list of skills.
-
-        Returns:
-            list: A formatted list of skills.
-        """
-        result = []
-        for cat in self.skills:
-            curr = ""
-            if cat.get("category", ""):
-                curr += f"{cat['category']}: "
-            if "skills" in cat:
-                curr += "Proficient in "
-                curr += ", ".join(cat["skills"])
-                result.append(curr)
-        return result
-
-    def _get_cumulative_time_from_titles(self, titles) -> int:
-        """Calculate the cumulative time from job titles.
-
-        Args:
-            titles (list): A list of job titles with start and end dates.
-
-        Returns:
-            int: The cumulative time in years.
-        """
-        result = 0.0
-        for t in titles:
-            if "startdate" in t and "enddate" in t:
-                if t["enddate"] == "current":
-                    last_date = datetime.today().strftime("%Y-%m-%d")
-                else:
-                    last_date = t["enddate"]
-            result += datediff_years(start_date=t["startdate"], end_date=last_date)
-        return round(result)
-
-    def _format_experiences_for_prompt(self) -> list:
-        """Format experiences for inclusion in a prompt.
-
-        Returns:
-            list: A formatted list of experiences.
-        """
-        result = []
-        for exp in self.experiences:
-            curr = ""
-            if "titles" in exp:
-                exp_time = self._get_cumulative_time_from_titles(exp["titles"])
-                curr += f"{exp_time} years experience in:"
-            if "highlights" in exp:
-                curr += format_list_as_string(exp["highlights"], list_sep="\n  - ")
-                curr += "\n"
-                result.append(curr)
-        return result
-
-    def _format_projects_for_prompt(self) -> list:
-        """Format projects for inclusion in a prompt.
-
-        Returns:
-            list: A formatted list of projects.
-        """
-        result = []
-        for exp in self.projects:
-            curr = ""
-            if "name" in exp:
-                name = exp["name"]
-                curr += f"Side Project: {name}"
-            if "highlights" in exp:
-                curr += format_list_as_string(exp["highlights"], list_sep="\n  - ")
-                curr += "\n"
-                result.append(curr)
         return result
 
     def _combine_skills_in_category(self, l1: list[str], l2: list[str]):
@@ -473,16 +383,6 @@ class ResumeImprover(ExtractorLLM):
             else:
                 l1.append(s)
 
-    def _print_debug_message(self, chain_kwargs: dict, chain_output_unformatted: str):
-        """Print a debug message.
-
-        Args:
-            chain_kwargs (dict): The keyword arguments for the chain.
-            chain_output_unformatted (str): The unformatted output from the chain.
-        """
-        message = "Final answer is missing from the chain output."
-        return
-
     def rewrite_section(self, section: list | str, **chain_kwargs) -> dict:
         """Rewrite a section of the resume.
 
@@ -493,13 +393,13 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The rewritten section.
         """
-        chain = self._chain_updater(Prompts.lookup["SECTION_HIGHLIGHTER"], **chain_kwargs)
-        chain_inputs = self._get_formatted_chain_inputs(chain=chain, section=section)
-        section_revised_unformatted = chain.invoke(chain_inputs)
-        section_revised = self.extract_from_input(
-            pydantic_object=ResumeSectionHighlighterOutput,
-            input=section_revised_unformatted,
+        chain = self._chain_updater(
+            Prompts.lookup["SECTION_HIGHLIGHTER"],
+            ResumeSectionHighlighterOutput,
+            **chain_kwargs,
         )
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain, section=section)
+        section_revised = chain.invoke(chain_inputs).dict()
         section_revised = sorted(
             section_revised["final_answer"], key=lambda d: d["relevance"] * -1
         )
@@ -547,13 +447,11 @@ class ResumeImprover(ExtractorLLM):
             dict: The extracted skills.
         """
 
-        chain = self._chain_updater(Prompts.lookup["SKILLS_MATCHER"], **chain_kwargs)
-        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
-        extracted_skills_unformatted = chain.invoke(chain_inputs)
-        extracted_skills = self.extract_from_input(
-            pydantic_object=ResumeSkillsMatcherOutput,
-            input=extracted_skills_unformatted,
+        chain = self._chain_updater(
+            Prompts.lookup["SKILLS_MATCHER"], ResumeSkillsMatcherOutput, **chain_kwargs
         )
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
+        extracted_skills = chain.invoke(chain_inputs).dict()
         if not extracted_skills or "final_answer" not in extracted_skills:
             return None
         extracted_skills = extracted_skills["final_answer"]
@@ -581,13 +479,12 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The written objective.
         """
-        chain = self._chain_updater(Prompts.lookup["OBJECTIVE_WRITER"], **chain_kwargs)
+        chain = self._chain_updater(
+            Prompts.lookup["OBJECTIVE_WRITER"], ResumeSummarizerOutput, **chain_kwargs
+        )
 
         chain_inputs = self._get_formatted_chain_inputs(chain=chain)
-        objective_unformatted = chain.invoke(chain_inputs)
-        objective = self.extract_from_input(
-            pydantic_object=ResumeSummarizerOutput, input=objective_unformatted
-        )
+        objective = chain.invoke(chain_inputs).dict()
         if not objective or "final_answer" not in objective:
             return None
         return objective["final_answer"]
@@ -601,12 +498,11 @@ class ResumeImprover(ExtractorLLM):
         Returns:
             dict: The suggested improvements.
         """
-        chain = self._chain_updater(Prompts.lookup["IMPROVER"], **chain_kwargs)
-        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
-        improvements_unformatted = chain.invoke(chain_inputs)
-        improvements = self.extract_from_input(
-            pydantic_object=ResumeImproverOutput, input=improvements_unformatted
+        chain = self._chain_updater(
+            Prompts.lookup["IMPROVER"], ResumeImproverOutput, **chain_kwargs
         )
+        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
+        improvements = chain.invoke(chain_inputs).dict()
         if not improvements or "final_answer" not in improvements:
             return None
         return improvements["final_answer"]
