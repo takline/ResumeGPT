@@ -7,14 +7,15 @@ from bs4 import BeautifulSoup
 import uuid
 import requests
 from langchain.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableSequence
+from langchain_core.runnables import RunnableSequence, RunnableParallel
 from langchain_core.output_parsers import StrOutputParser
 from ..models.resume import (
-    ResumeImproverOutput,
     ResumeSkillsMatcherOutput,
     ResumeSummarizerOutput,
-    ResumeSectionHighlighterOutput,
+    ResumeBulletPointRewriterOutput,
+    BulletPointImproverOutput,
 )
+import yaml
 from .. import utils
 from .. import config
 from .langchain_helpers import *
@@ -30,7 +31,13 @@ from .background_runner import BackgroundRunner
 
 class ResumeImprover:
 
-    def __init__(self, url, resume_location=None, llm_kwargs: dict = None):
+    def __init__(
+        self,
+        url=None,
+        job_description=None,
+        resume_location=None,
+        llm_kwargs: dict = None,
+    ):
         """Initialize ResumeImprover with the job post URL and optional resume location.
 
         Args:
@@ -39,10 +46,12 @@ class ResumeImprover:
             llm_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
         """
         super().__init__()
+        self.url = url
+        self.resume_location = resume_location or config.DEFAULT_RESUME_PATH
         self.job_post_html_data = None
-        self.job_post_raw = None
         self.resume = None
         self.resume_yaml = None
+        self.job_post_raw = None
         self.job_post = None
         self.parsed_job = None
         self.llm_kwargs = llm_kwargs or {}
@@ -50,9 +59,10 @@ class ResumeImprover:
         self.clean_url = None
         self.job_data_location = None
         self.yaml_loc = None
-        self.url = url
-        self.download_and_parse_job_post()
-        self.resume_location = resume_location or config.DEFAULT_RESUME_PATH
+        if self.url:
+            self.download_and_parse_job_post()
+        elif job_description:
+            self.parse_raw_job_post(raw_description=job_description)
         self._update_resume_fields()
 
     def _update_resume_fields(self):
@@ -122,7 +132,7 @@ class ResumeImprover:
                 return True
 
             except requests.RequestException as e:
-                if response.status_code == 429:
+                if "response" in locals() and response.status_code == 429:
                     config.logger.warning(
                         f"Rate limit exceeded. Retrying in {backoff_factor * 2 ** attempt} seconds..."
                     )
@@ -146,7 +156,7 @@ class ResumeImprover:
         self._download_url()
         self._extract_html_data()
         self.job_post = JobPost(self.job_post_raw)
-        self.parsed_job = self.job_post.parse_job_post(verbose=False)
+        self.parsed_job = self.job_post.parse_job_post()
         try:
             filename = self.parsed_job["company"] + "_" + self.parsed_job["job_title"]
             filename = filename.replace(" ", "_")
@@ -167,16 +177,19 @@ class ResumeImprover:
             self.parsed_job, filename=os.path.join(self.job_data_location, "job.yaml")
         )
 
-    def parse_raw_job_post(self, raw_html):
+    def parse_raw_job_post(self, raw_html=None, raw_description=None):
         """Download and parse the job post from the provided URL.
 
         Args:
             url (str, optional): The URL of the job post. Defaults to None.
         """
-        self.job_post_html_data = raw_html
-        self._extract_html_data()
+        if raw_html:
+            self.job_post_html_data = raw_html
+            self._extract_html_data()
+        elif raw_description:
+            self.job_post_raw = raw_description
         self.job_post = JobPost(self.job_post_raw)
-        self.parsed_job = self.job_post.parse_job_post(verbose=False)
+        self.parsed_job = self.job_post.parse_job_post()
         try:
             filename = self.parsed_job["company"] + "_" + self.parsed_job["job_title"]
             filename = filename.replace(" ", "_")
@@ -198,47 +211,11 @@ class ResumeImprover:
         )
 
     def create_draft_tailored_resume(
-        self, auto_open=True, manual_review=True, skip_pdf_create=False
-    ):
-        """Run a full review of the resume against the job post.
-
-        Args:
-            auto_open (bool, optional): Whether to automatically open the generated resume. Defaults to True.
-            manual_review (bool, optional): Whether to wait for manual review. Defaults to True.
-        """
-        config.logger.info("Extracting matched skills...")
-        self.skills = self.extract_matched_skills(verbose=False)
-        config.logger.info("Writing objective...")
-        self.objective = self.write_objective(verbose=False)
-        config.logger.info("Updating bullet points...")
-        self.experiences = self.rewrite_unedited_experiences(verbose=False)
-        config.logger.info("Updating projects...")
-        self.projects = self.rewrite_unedited_projects(verbose=False)
-        config.logger.info("Done updating...")
-        self.yaml_loc = os.path.join(self.job_data_location, "resume.yaml")
-        resume_dict = dict(
-            editing=True,
-            basic=self.basic_info,
-            objective=self.objective,
-            education=self.education,
-            experiences=self.experiences,
-            projects=self.projects,
-            skills=self.skills,
-        )
-        utils.write_yaml(resume_dict, filename=self.yaml_loc)
-        self.resume_yaml = utils.read_yaml(filename=self.yaml_loc)
-        if auto_open:
-            subprocess.run(config.OPEN_FILE_COMMAND.split(" ") + [self.yaml_loc])
-        while manual_review and utils.read_yaml(filename=self.yaml_loc)["editing"]:
-            time.sleep(5)
-        config.logger.info("Saving PDF")
-        if not skip_pdf_create:
-            self.create_pdf(auto_open=auto_open)
-
-    pass
-
-    def _create_tailored_resume_in_background(
-        self, auto_open=True, manual_review=True, background_runner=None
+        self,
+        auto_open=True,
+        manual_review=True,
+        skip_pdf_create=False,
+        background_runner=None,
     ):
         """Run a full review of the resume against the job post.
 
@@ -250,82 +227,107 @@ class ResumeImprover:
             logger = background_runner.logger
         else:
             logger = config.logger
+        resume_dict = {
+            "editing": True,
+            "basic": self.basic_info,
+            "education": self.education,
+        }
+
         logger.info("Extracting matched skills...")
-        self.skills = self.extract_matched_skills(verbose=False)
-        logger.info("Writing objective...")
-        self.objective = self.write_objective(verbose=False)
+        self.skills = self.extract_matched_skills()
+        if self.skills:
+            resume_dict["skills"] = self.skills
+
+        if self.objective:
+            logger.info("Writing objective...")
+            self.objective = self.write_objective()
+            resume_dict["objective"] = self.objective
+        else:
+            logger.info("Objective not found; skipping objective improvement.")
+
         logger.info("Updating bullet points...")
-        self.experiences = self.rewrite_unedited_experiences(verbose=False)
-        logger.info("Updating projects...")
-        self.projects = self.rewrite_unedited_projects(verbose=False)
+        self.rewrite_unedited_experiences()
+        if self.experiences:
+            resume_dict["experiences"] = self.experiences
+
+        if self.projects:
+            logger.info("Updating projects...")
+            self.projects = self.rewrite_unedited_projects()
+            resume_dict["projects"] = self.projects
+        else:
+            logger.info("Projects not found; skipping projects improvement.")
+
         logger.info("Done updating...")
         self.yaml_loc = os.path.join(self.job_data_location, "resume.yaml")
-        resume_dict = dict(
-            editing=True,
-            basic=self.basic_info,
-            objective=self.objective,
-            education=self.education,
-            experiences=self.experiences,
-            projects=self.projects,
-            skills=self.skills,
-        )
         utils.write_yaml(resume_dict, filename=self.yaml_loc)
         self.resume_yaml = utils.read_yaml(filename=self.yaml_loc)
+        if auto_open:
+            subprocess.run(config.OPEN_FILE_COMMAND.split(" ") + [self.yaml_loc])
+        while manual_review and utils.read_yaml(filename=self.yaml_loc)["editing"]:
+            time.sleep(5)
+        logger.info("Saving PDF")
+        if not skip_pdf_create:
+            self.create_pdf(auto_open=auto_open)
 
-    def create_draft_tailored_resumes_in_background(background_configs: List[dict]):
-        """Run 'create_draft_tailored_resume' for multiple configurations in the background.
+        async def create_draft_tailored_resume_async(
+            self,
+            auto_open=True,
+            manual_review=True,
+            skip_pdf_create=False,
+            background_runner=None,
+        ):
+            return self.create_draft_tailored_resume(
+                auto_open=auto_open,
+                manual_review=manual_review,
+                skip_pdf_create=skip_pdf_create,
+                background_runner=background_runner,
+            )
 
-        Args:
-            background_configs (List[dict]): List of configurations for creating draft tailored resumes.
-                Each configuration dictionary should have the following keys:
-                - url (str): The URL of the job posting.
-                - resume_location (str): The file path to the resume to be tailored.
-                - auto_open (bool, optional): Whether to automatically open the generated resume. Defaults to True.
-                - manual_review (bool, optional): Whether to wait for manual review. Defaults to True.
-        """
-        output = {}
-        output["ResumeImprovers"] = []
-        output["background_runner"] = BackgroundRunner()
+        @staticmethod
+        def create_draft_tailored_resumes_in_background(background_configs: List[dict]):
+            """Run create_draft_tailored_resume for multiple configurations in the background.
 
-        def run_config(background_config, resume_improver):
-            try:
-                resume_improver.download_and_parse_job_post()
-                resume_improver._create_tailored_resume_in_background(
-                    auto_open=background_config.get("auto_open", True),
-                    manual_review=background_config.get("manual_review", True),
-                )
-            except Exception as e:
-                output["background_runner"].logger.error(
-                    f"An error occurred with config {config}: {e}"
-                )
+            Args:
+                background_configs (List[dict]): List of configurations for creating draft tailored resumes.
+                    Each configuration dictionary should have the following keys:
+                    - url (str): The URL of the job posting.
+                    - resume_location (str): The file path to the resume to be tailored.
+                    - auto_open (bool, optional): Whether to automatically open the generated resume. Defaults to True.
+                    - manual_review (bool, optional): Whether to wait for manual review. Defaults to True.
+            """
+            background_runner = BackgroundRunner()
+            resume_improvers = []
 
-        for background_config in background_configs:
-            output["ResumeImprovers"].append(
-                ResumeImprover(
+            def run_config(background_config):
+                resume_improver = ResumeImprover(
                     url=background_config["url"],
                     resume_location=background_config.get("resume_location"),
                 )
-            )
-            output["background_runner"].run_in_background(
-                run_config, background_config, output["ResumeImprovers"][-1]
-            )
-        return output
+                resume_improvers.append(resume_improver)
+                resume_improver.download_and_parse_job_post()
+                resume_improver.create_draft_tailored_resume_async(
+                    auto_open=background_config.get("auto_open", True),
+                    manual_review=background_config.get("manual_review", True),
+                )
 
-    def _get_formatted_chain_inputs(self, chain, section=None):
+            for background_config in background_configs:
+                background_runner.run_in_background(run_config, background_config)
+
+            return {
+                "ResumeImprovers": resume_improvers,
+                "background_runner": background_runner,
+            }
+
+    def _get_formatted_chain_inputs(self, chain):
         output_dict = {}
         raw_self_data = self.__dict__
-        if section is not None:
-            raw_self_data = raw_self_data.copy()
-            raw_self_data["section"] = section
         for key in chain.get_input_schema().schema()["required"]:
             output_dict[key] = chain_formatter(
                 key, raw_self_data.get(key) or self.parsed_job.get(key)
             )
         return output_dict
 
-    def _chain_updater(
-        self, prompt_msgs, pydantic_object, **chain_kwargs
-    ) -> RunnableSequence:
+    def _chain_updater(self, prompt_msgs, pydantic_object) -> RunnableSequence:
         """Create a chain based on the prompt messages.
 
         Returns:
@@ -383,72 +385,151 @@ class ResumeImprover:
             else:
                 l1.append(s)
 
-    def rewrite_section(self, section: list | str, **chain_kwargs) -> dict:
-        """Rewrite a section of the resume.
+    def rewrite_bullet_points(self, projects=False) -> dict:
+        """Rewrite bullet points in the resume.
 
         Args:
-            section (list | str): The section to rewrite.
-            **chain_kwargs: Additional keyword arguments for the chain.
+            projects (bool): If True, update self.projects instead of self.experiences.
 
         Returns:
-            dict: The rewritten section.
+            dict: The rewritten bullet points.
         """
-        chain = self._chain_updater(
-            Prompts.lookup["SECTION_HIGHLIGHTER"],
-            ResumeSectionHighlighterOutput,
-            **chain_kwargs,
+        bullet_point_chain = self._chain_updater(
+            prompt_msgs=Prompts.lookup["BULLET_POINT_REWRITER"],
+            pydantic_object=ResumeBulletPointRewriterOutput,
         )
-        chain_inputs = self._get_formatted_chain_inputs(chain=chain, section=section)
-        section_revised = chain.invoke(chain_inputs).dict()
-        section_revised = sorted(
-            section_revised["final_answer"], key=lambda d: d["relevance"] * -1
+        bullet_point_chain_inputs = self._get_formatted_chain_inputs(
+            chain=bullet_point_chain
         )
-        return [s["highlight"] for s in section_revised]
 
-    def rewrite_unedited_experiences(self, **chain_kwargs) -> dict:
-        """Rewrite unedited experiences in the resume.
+        target_list = self.projects if projects else self.experiences
+
+        for exp in target_list:
+            bullet_point_chain_inputs["draft"] = format_list_as_string(
+                exp["highlights"]
+            )
+            new_bullets = bullet_point_chain.invoke(bullet_point_chain_inputs).dict()[
+                "answer"
+            ]
+
+            new_bullets = sorted(new_bullets, key=lambda d: d["relevance"] * -1)
+            new_bullets = [s["highlight"] for s in new_bullets]
+            exp["highlights"] = new_bullets
+
+        with open(config.PROMPTS_YAML, "r") as file:
+            raw_prompts = yaml.safe_load(file)
+
+        prompt_template = raw_prompts["BULLET_POINT_IMPROVER"]
+        new_bullets = ""
+        new_tags = ""
+        for i, exp in enumerate(target_list):
+            bullet_point_chain_inputs[f"draft_{i}"] = format_list_as_string(
+                exp["highlights"]
+            )
+            new_tags += f", <draft_{i}>"
+            new_bullets += "\n<draft_%i>\n{draft_%i}\n</draft_%i>\n" % (i)
+            for ii in range(len(prompt_template)):
+                prompt_template[ii] = prompt_template[ii].replace(
+                    "PUT_BULLETS_HERE", new_bullets
+                )
+                prompt_template[ii] = prompt_template[ii].replace(
+                    "PUT_DRAFT_TAGS_HERE", f"({new_tags})"
+                )
+        prompt_template = Prompts.create_prompt_from_dict(prompt_template)
+        reviewer_chain = self._chain_updater(
+            prompt_msgs=prompt_template, pydantic_object=BulletPointImproverOutput
+        )
+        reviewed_bullets = reviewer_chain.invoke(bullet_point_chain_inputs).dict()
+        for i, exp in enumerate(reviewed_bullets["answer"]):
+            target_list[i]["highlights"] = exp["highlights"]
+        return "Done!"
+
+    def rewrite_bullet_points(self, projects=False) -> dict:
+        """Rewrite bullet points in the resume.
 
         Args:
-            **chain_kwargs: Additional keyword arguments for the chain.
+            projects (bool): If True, update self.projects instead of self.experiences.
+
+        Returns:
+            dict: The rewritten bullet points.
+        """
+        bullet_point_chain = self._chain_updater(
+            prompt_msgs=Prompts.lookup["BULLET_POINT_REWRITER"],
+            pydantic_object=ResumeBulletPointRewriterOutput,
+        )
+        bullet_point_chain_inputs = self._get_formatted_chain_inputs(
+            chain=bullet_point_chain
+        )
+
+        target_list = self.projects if projects else self.experiences
+
+        for exp in target_list:
+            bullet_point_chain_inputs["draft"] = format_list_as_string(
+                exp["highlights"]
+            )
+            new_bullets = bullet_point_chain.invoke(bullet_point_chain_inputs).dict()[
+                "answer"
+            ]
+
+            new_bullets = sorted(new_bullets, key=lambda d: d["relevance"] * -1)
+            new_bullets = [s["highlight"] for s in new_bullets]
+            exp["highlights"] = new_bullets
+
+        with open(config.PROMPTS_YAML, "r") as file:
+            raw_prompts = yaml.safe_load(file)
+
+        prompt_template = raw_prompts["BULLET_POINT_IMPROVER"]
+        new_bullets = ""
+        new_tags = ""
+        for i, exp in enumerate(target_list):
+            bullet_point_chain_inputs[f"draft_{i}"] = format_list_as_string(
+                exp["highlights"]
+            )
+            new_tags += f", <draft_{i}>"
+            new_bullets += "\n<draft_%i>\n{draft_%i}\n</draft_%i>\n" % (i)
+            for ii in range(len(prompt_template)):
+                prompt_template[ii] = prompt_template[ii].replace(
+                    "PUT_BULLETS_HERE", new_bullets
+                )
+                prompt_template[ii] = prompt_template[ii].replace(
+                    "PUT_DRAFT_TAGS_HERE", f"({new_tags})"
+                )
+        prompt_template = Prompts.create_prompt_from_dict(prompt_template)
+        reviewer_chain = self._chain_updater(
+            prompt_msgs=prompt_template, pydantic_object=BulletPointImproverOutput
+        )
+        reviewed_bullets = reviewer_chain.invoke(bullet_point_chain_inputs).dict()
+        for i, exp in enumerate(reviewed_bullets["answer"]):
+            target_list[i]["highlights"] = exp["highlights"]
+        return "Done!"
+
+    def rewrite_unedited_experiences(self) -> dict:
+        """Rewrite unedited experiences in the resume.
 
         Returns:
             dict: The rewritten experiences.
         """
-        result = []
-        for exp in self.experiences:
-            exp = dict(exp)
-            exp["highlights"] = self.rewrite_section(section=exp, **chain_kwargs)
-            result.append(exp)
-        return result
+        self.rewrite_bullet_points()
+        return self.experiences
 
-    def rewrite_unedited_projects(self, **chain_kwargs) -> dict:
+    def rewrite_unedited_projects(self) -> dict:
         """Rewrite unedited projects in the resume.
-
-        Args:
-            **chain_kwargs: Additional keyword arguments for the chain.
 
         Returns:
             dict: The rewritten projects.
         """
-        result = []
-        for exp in self.projects:
-            exp = dict(exp)
-            exp["highlights"] = self.rewrite_section(section=exp, **chain_kwargs)
-            result.append(exp)
-        return result
+        self.rewrite_bullet_points(projects=True)
+        return self.projects
 
-    def extract_matched_skills(self, **chain_kwargs) -> dict:
+    def extract_matched_skills(self) -> dict:
         """Extract matched skills from the resume and job post.
-
-        Args:
-            **chain_kwargs: Additional keyword arguments for the chain.
 
         Returns:
             dict: The extracted skills.
         """
 
         chain = self._chain_updater(
-            Prompts.lookup["SKILLS_MATCHER"], ResumeSkillsMatcherOutput, **chain_kwargs
+            Prompts.lookup["SKILLS_MATCHER"], ResumeSkillsMatcherOutput
         )
         chain_inputs = self._get_formatted_chain_inputs(chain=chain)
         extracted_skills = chain.invoke(chain_inputs).dict()
@@ -470,17 +551,14 @@ class ResumeImprover:
         self._combine_skill_lists(result, self.skills)
         return result
 
-    def write_objective(self, **chain_kwargs) -> dict:
+    def write_objective(self) -> dict:
         """Write a objective for the resume.
-
-        Args:
-            **chain_kwargs: Additional keyword arguments for the chain.
 
         Returns:
             dict: The written objective.
         """
         chain = self._chain_updater(
-            Prompts.lookup["OBJECTIVE_WRITER"], ResumeSummarizerOutput, **chain_kwargs
+            Prompts.lookup["OBJECTIVE_WRITER"], ResumeSummarizerOutput
         )
 
         chain_inputs = self._get_formatted_chain_inputs(chain=chain)
@@ -488,24 +566,6 @@ class ResumeImprover:
         if not objective or "final_answer" not in objective:
             return None
         return objective["final_answer"]
-
-    def suggest_improvements(self, **chain_kwargs) -> dict:
-        """Suggest improvements for the resume.
-
-        Args:
-            **chain_kwargs: Additional keyword arguments for the chain.
-
-        Returns:
-            dict: The suggested improvements.
-        """
-        chain = self._chain_updater(
-            Prompts.lookup["IMPROVER"], ResumeImproverOutput, **chain_kwargs
-        )
-        chain_inputs = self._get_formatted_chain_inputs(chain=chain)
-        improvements = chain.invoke(chain_inputs).dict()
-        if not improvements or "final_answer" not in improvements:
-            return None
-        return improvements["final_answer"]
 
     def finalize(self) -> dict:
         """Finalize the resume data.

@@ -1,7 +1,7 @@
 import logging
 import os
-import configparser
 from langchain_openai import ChatOpenAI
+import shutil
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -28,8 +28,6 @@ REQUESTS_HEADERS = {
 CHAT_MODEL = ChatOpenAI
 MODEL_NAME = "gpt-4o"
 TEMPERATURE = 0.3
-OPEN_FILE_COMMAND = "cursor -r"
-#OPEN_FILE_COMMAND = "code -r"
 MAX_CONCURRENT_WORKERS = 4
 MAX_RETRIES = 3
 BACKOFF_FACTOR = 5
@@ -46,3 +44,24 @@ def ensure_openai_api_key():
 
 ensure_openai_api_key()
 
+def command_exists(command):
+    """Check if a command exists on the system."""
+    return shutil.which(command) is not None
+
+def get_open_file_command():
+    """Determine the appropriate command to open files."""
+    preferred_commands = [
+        ("cursor", "cursor -r"),
+        ("code", "code -r"),
+        ("subl", "subl"),  # Sublime Text
+        ("atom", "atom"),  # Atom
+        ("notepad++", "notepad++"),  # Notepad++ (Windows)
+        ("open", "open"),  # Default macOS opener
+    ]
+
+    for cmd, full_cmd in preferred_commands:
+        if command_exists(cmd):
+            return full_cmd
+    return ""
+
+OPEN_FILE_COMMAND = get_open_file_command()

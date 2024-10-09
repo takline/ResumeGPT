@@ -4,37 +4,44 @@ from ..prompts.prompts import Prompts
 
 Prompts.initialize()
 
-class ResumeSectionHighlight(BaseModel):
+
+class ResumeBulletPoint(BaseModel):
     """Pydantic class that defines each highlight to be returned by the LLM."""
 
     highlight: str = Field(
-        ..., description=Prompts.descriptions["RESUME_SECTION_HIGHLIGHT"]["highlight"]
+        ..., description=Prompts.descriptions["RESUME_BULLET_POINTS"]["highlight"]
     )
     relevance: int = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SECTION_HIGHLIGHT"]["relevance"],
+        description=Prompts.descriptions["RESUME_BULLET_POINTS"]["relevance"],
         enum=[1, 2, 3, 4, 5],
     )
 
-class ResumeSectionHighlighterOutput(BaseModel):
+
+class ResumeBulletPointRewriterOutput(BaseModel):
     """Pydantic class that defines a list of highlights to be returned by the LLM."""
 
-    plan: List[str] = Field(
+    thinking: List[str] = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SECTION_HIGHLIGHTER_OUTPUT"]["plan"],
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["thinking"],
     )
-    additional_steps: List[str] = Field(
+    steps: List[str] = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SECTION_HIGHLIGHTER_OUTPUT"]["additional_steps"],
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["steps"],
     )
-    work: List[str] = Field(
+    answer: List[ResumeBulletPoint] = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SECTION_HIGHLIGHTER_OUTPUT"]["work"],
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["answer"],
     )
-    final_answer: List[ResumeSectionHighlight] = Field(
+    reward: int = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SECTION_HIGHLIGHTER_OUTPUT"]["final_answer"],
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["reward"],
     )
+    reflection: str = Field(
+        ...,
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["reflection"],
+    )
+
 
 class ResumeSkills(BaseModel):
     """Pydantic class that defines a list of skills to be returned by the LLM."""
@@ -46,6 +53,7 @@ class ResumeSkills(BaseModel):
         ..., description=Prompts.descriptions["RESUME_SKILLS"]["non_technical_skills"]
     )
 
+
 class ResumeSkillsMatcherOutput(BaseModel):
     """Pydantic class that defines a list of skills to be returned by the LLM."""
 
@@ -54,15 +62,20 @@ class ResumeSkillsMatcherOutput(BaseModel):
     )
     additional_steps: List[str] = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SKILLS_MATCHER_OUTPUT"]["additional_steps"],
+        description=Prompts.descriptions["RESUME_SKILLS_MATCHER_OUTPUT"][
+            "additional_steps"
+        ],
     )
     work: List[str] = Field(
         ..., description=Prompts.descriptions["RESUME_SKILLS_MATCHER_OUTPUT"]["work"]
     )
     final_answer: ResumeSkills = Field(
         ...,
-        description=Prompts.descriptions["RESUME_SKILLS_MATCHER_OUTPUT"]["final_answer"],
+        description=Prompts.descriptions["RESUME_SKILLS_MATCHER_OUTPUT"][
+            "final_answer"
+        ],
     )
+
 
 class ResumeSummarizerOutput(BaseModel):
     """Pydantic class that defines a list of skills to be returned by the LLM."""
@@ -81,6 +94,7 @@ class ResumeSummarizerOutput(BaseModel):
         ...,
         description=Prompts.descriptions["RESUME_OBJECTIVE_OUTPUT"]["final_answer"],
     )
+
 
 class ResumeImprovements(BaseModel):
     """Pydantic class that defines a list of improvements to be returned by the LLM."""
@@ -101,19 +115,36 @@ class ResumeImprovements(BaseModel):
         ..., description=Prompts.descriptions["RESUME_IMPROVEMENTS"]["improvements"]
     )
 
-class ResumeImproverOutput(BaseModel):
+
+class ResumeBulletPointSection(BaseModel):
+    """Pydantic class that defines each highlight to be returned by the LLM."""
+
+    highlights: List[str] = Field(
+        ...,
+        description=Prompts.descriptions["RESUME_BULLET_POINTS_SECTION"]["highlight"],
+    )
+
+
+class BulletPointImproverOutput(BaseModel):
     """Pydantic class that defines a list of improvements to be returned by the LLM."""
 
-    plan: List[str] = Field(
-        ..., description=Prompts.descriptions["RESUME_IMPROVER_OUTPUT"]["plan"]
-    )
-    additional_steps: List[str] = Field(
+    thinking: List[str] = Field(
         ...,
-        description=Prompts.descriptions["RESUME_IMPROVER_OUTPUT"]["additional_steps"],
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["thinking"],
     )
-    work: List[str] = Field(
-        ..., description=Prompts.descriptions["RESUME_IMPROVER_OUTPUT"]["work"]
+    steps: List[str] = Field(
+        ...,
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["steps"],
     )
-    final_answer: List[ResumeImprovements] = Field(
-        ..., description=Prompts.descriptions["RESUME_IMPROVER_OUTPUT"]["final_answer"]
+    answer: List[ResumeBulletPointSection] = Field(
+        ...,
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["answer"],
+    )
+    reward: int = Field(
+        ...,
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["reward"],
+    )
+    reflection: str = Field(
+        ...,
+        description=Prompts.descriptions["BULLET_POINT_REWRITER"]["reflection"],
     )

@@ -58,7 +58,7 @@ class JobPost:
         )
         self.parsed_job = None
 
-    def parse_job_post(self, **chain_kwargs) -> dict:
+    def parse_job_post(self) -> dict:
         """Parse the job posting to extract job description and skills."""
         model = self.extractor_llm.with_structured_output(JobDescription)
         self.parsed_job = model.invoke(self.posting).dict()

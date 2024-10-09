@@ -1,6 +1,7 @@
 import yaml
 from .. import config
 
+
 def check_resume_format(yaml_file_path: str) -> bool:
     """Check if the resume format is correct and provide suggestions for corrections.
 
@@ -20,7 +21,7 @@ def check_resume_format(yaml_file_path: str) -> bool:
             "phone": str,
             "websites": [str],
         },
-        "objective": str,
+        "objective": (str, type(None)),
         "education": [{"school": str, "degrees": [{"names": [str]}]}],
         "experiences": [
             {
@@ -49,7 +50,7 @@ def check_resume_format(yaml_file_path: str) -> bool:
         ],
         "skills": [{"category": str, "skills": [str]}],
     }
-    
+
     example_snippets = {
         "editing": "editing: true",
         "debug": "debug: false",
@@ -84,7 +85,7 @@ def check_resume_format(yaml_file_path: str) -> bool:
       - Implemented a microservices architecture, reducing system downtime by 30%.
       - Mentored a team of junior developers, fostering a culture of continuous learning and improvement.
       - Spearheaded the integration of AI-driven features, enhancing product capabilities and user satisfaction.""",
-      "projects":"""projects:
+        "projects": """projects:
 - name: Example Github Project
   link: https://www.github.com/username/project
   date: Jan 2024
@@ -118,9 +119,9 @@ def check_resume_format(yaml_file_path: str) -> bool:
       - Excellent communication
       - Team leadership
       - Project management
-      - Agile methodologies"""
+      - Agile methodologies""",
     }
-    
+
     def validate_format(actual, expected, path=""):
         """Recursively validate the format of the actual YAML content against the expected format.
 
@@ -140,7 +141,9 @@ def check_resume_format(yaml_file_path: str) -> bool:
                 if key not in actual:
                     errors.append((f"{path}/{key}", expected_type, "missing"))
                 else:
-                    errors.extend(validate_format(actual[key], expected_type, f"{path}/{key}"))
+                    errors.extend(
+                        validate_format(actual[key], expected_type, f"{path}/{key}")
+                    )
             return errors
         elif isinstance(expected, list):
             if not isinstance(actual, list):
@@ -159,6 +162,8 @@ def check_resume_format(yaml_file_path: str) -> bool:
     with open(yaml_file_path, "r") as file:
         actual_yaml_dict = yaml.safe_load(file)
 
+    if "projects" not in actual_yaml_dict:
+        expected_format.pop("projects", None)
     errors = validate_format(actual_yaml_dict, expected_format)
 
     def get_example_snippet(path):
@@ -170,52 +175,62 @@ def check_resume_format(yaml_file_path: str) -> bool:
         Returns:
             str: An example snippet corresponding to the path.
         """
-        key = path.split('/')[1]
-        key = key.split('[')[0]
+        key = path.split("/")[1]
+        key = key.split("[")[0]
         return example_snippets.get(key, None)
 
     consolidated_errors = {}
 
     for error in errors:
         path, expected, actual = error
-        main_key = path.split('/')[1]
-        sub_key = path.split('/')[-1]
+        main_key = path.split("/")[1]
+        sub_key = path.split("/")[-1]
         if main_key not in consolidated_errors:
-            consolidated_errors[main_key] = {"missing": [], "incorrect": [], "entries": []}
-        
+            consolidated_errors[main_key] = {
+                "missing": [],
+                "incorrect": [],
+                "entries": [],
+            }
+
         if main_key == "experiences":
-            entry_index = path.split('/')[2].split('[')[-1][:-1]
-            consolidated_errors[main_key]["entries"].append(f"experiences[{entry_index}]")
-            
+            entry_index = path.split("/")[2].split("[")[-1][:-1]
+            consolidated_errors[main_key]["entries"].append(
+                f"experiences[{entry_index}]"
+            )
+
         if main_key == "projects":
-            entry_index = path.split('/')[2].split('[')[-1][:-1]
+            entry_index = path.split("/")[2].split("[")[-1][:-1]
             consolidated_errors[main_key]["entries"].append(f"projects[{entry_index}]")
-        
+
         if actual == "missing":
             consolidated_errors[main_key]["missing"].append(sub_key)
         elif isinstance(expected, str):
-            consolidated_errors[main_key]["incorrect"].append((sub_key, actual, expected))
+            consolidated_errors[main_key]["incorrect"].append(
+                (sub_key, actual, expected)
+            )
         else:
-            consolidated_errors[main_key]["incorrect"].append((sub_key, actual, expected.__name__))
+            consolidated_errors[main_key]["incorrect"].append(
+                (sub_key, actual, expected.__name__)
+            )
     logger_error = ""
     if consolidated_errors:
         for main_key, issues in consolidated_errors.items():
             example_snippet = get_example_snippet(f"/{main_key}")
             if main_key == "experiences" and issues["entries"]:
                 entries = ", ".join(set(issues["entries"]))
-                logger_error+=f"\nYou have formatting errors in these experiences entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
+                logger_error += f"\nYou have formatting errors in these experiences entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
             if main_key == "projects" and issues["entries"]:
                 entries = ", ".join(set(issues["entries"]))
-                logger_error+=f"\nYou have formatting errors in these projects entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
+                logger_error += f"\nYou have formatting errors in these projects entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
             if issues["missing"]:
                 missing_keys = ", ".join(issues["missing"])
-                if main_key=="projects":
-                    logger_error+="The 'Projects' section is currently empty. This is not an issue, but just an FYI for your awareness."
+                if main_key == "projects":
+                    logger_error += "The 'Projects' section is currently empty. This is not an issue, but just an FYI for your awareness."
                 else:
-                    logger_error+=f"\nYou are missing these keys: '{missing_keys}' in the '{main_key}' section. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
+                    logger_error += f"\nYou are missing these keys: '{missing_keys}' in the '{main_key}' section. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
             if issues["incorrect"]:
                 for sub_key, actual_type, expected_type in issues["incorrect"]:
-                    logger_error+=f"The value for '{sub_key}' in the '{main_key}' section is of type '{actual_type}'. \nExpected type: '{expected_type}'. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
+                    logger_error += f"The value for '{sub_key}' in the '{main_key}' section is of type '{actual_type}'. \nExpected type: '{expected_type}'. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
         config.logger.error(logger_error)
         return False
     else:

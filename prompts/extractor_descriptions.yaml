@@ -1,12 +1,17 @@
-RESUME_SECTION_HIGHLIGHT:
+RESUME_BULLET_POINTS:
   highlight: one highlight
   relevance: relevance of the bullet point
 
-RESUME_SECTION_HIGHLIGHTER_OUTPUT:
-  plan: itemized <Plan>
-  additional_steps: itemized <Additional Steps>
-  work: itemized <Work>
-  final_answer: itemized <Final Answer> in the correct format
+RESUME_BULLET_POINTS_SECTION:
+  highlight: one highlight
+
+
+BULLET_POINT_REWRITER:
+  thinking: itemized <thinking> thoughts
+  steps: itemized <steps> solution
+  answer: final itemized <answer> in the correct format
+  reward: final <reward> score
+  reflection: final <reflection> on the overall solution
 
 RESUME_SKILLS:
   technical_skills: An itemized list of technical skills

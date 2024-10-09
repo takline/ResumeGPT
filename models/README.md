@@ -22,21 +22,21 @@ Defines the structure of a job posting.
 
 ## Resume Models
 
-### ResumeSectionHighlight
+### ResumeBulletPoint
 Defines the structure of a highlight in a resume section.
 
 **Fields**:
 - `highlight` (str): One highlight.
 - `relevance` (int): Relevance of the bullet point (1-5).
 
-### ResumeSectionHighlighterOutput
+### ResumeBulletPointRewriterOutput
 Defines the structure of the output for the resume section highlighter.
 
 **Fields**:
 - `plan` (List[str]): Itemized plan.
 - `additional_steps` (List[str]): Itemized additional steps.
 - `work` (List[str]): Itemized work.
-- `final_answer` (List[ResumeSectionHighlight]): Itemized final answer in the correct format.
+- `final_answer` (List[ResumeBulletPoint]): Itemized final answer in the correct format.
 
 ### ResumeSkills
 Defines the structure of skills in a resume.

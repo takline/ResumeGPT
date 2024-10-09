@@ -437,26 +437,29 @@ class ResumePDFGenerator:
         )
 
         # Add objective
-        row_index = self._add_table_row(
-            table_data=table_data,
-            table_styles=table_styles,
-            row_index=row_index,
-            content_style_map=[
-                ("Objective", resume_pdf_styles.PARAGRAPH_STYLES["section"])
-            ],
-            span=True,
-        )
-        self._append_section_table_style(table_styles, row_index - 1)
+        if "objective" in data and data["objective"]:
+            row_index = self._add_table_row(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                content_style_map=[
+                    ("Objective", resume_pdf_styles.PARAGRAPH_STYLES["section"])
+                ],
+                span=True,
+            )
+            self._append_section_table_style(table_styles, row_index - 1)
 
-        row_index = self._add_table_row(
-            table_data=table_data,
-            table_styles=table_styles,
-            row_index=row_index,
-            content_style_map=[
-                (data["objective"], resume_pdf_styles.PARAGRAPH_STYLES["objective"])
-            ],
-            span=True,
-        )
+            row_index = self._add_table_row(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                content_style_map=[
+                    (data["objective"], resume_pdf_styles.PARAGRAPH_STYLES["objective"])
+                ],
+                span=True,
+            )
+        else:
+            config.logger.info("Objective not found; skipping objective section in PDF.")
 
         # Add experience
         row_index = self.add_experiences(
@@ -466,12 +469,16 @@ class ResumePDFGenerator:
             experiences=data["experiences"],
         )
         # Add projects
-        row_index = self.add_projects(
-            table_data=table_data,
-            table_styles=table_styles,
-            row_index=row_index,
-            projects=data["projects"],
-        )
+
+        if "projects" in data and data["projects"]:
+            row_index = self.add_projects(
+                table_data=table_data,
+                table_styles=table_styles,
+                row_index=row_index,
+                projects=data["projects"],
+            )
+        else:
+            config.logger.info("Projects not found; skipping projects section in PDF.")
 
         # Add education
         row_index = self.add_education(
