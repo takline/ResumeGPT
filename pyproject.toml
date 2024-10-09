@@ -47,3 +47,16 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/takline/ResumeGPT"
 "Bug Tracker" = "https://github.com/takline/ResumeGPT/issues"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.github
+  | \.pytest_cache
+  | \.__pycache__
+)/
+'''

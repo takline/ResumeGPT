@@ -21,9 +21,7 @@ class TestYamlHandler(unittest.TestCase):
             filename=os.path.join(config.TESTS_DATA_PATH, "test_output.yaml"),
         )
         self.assertTrue(
-            os.path.exists(
-                os.path.join(config.TESTS_DATA_PATH, "test_output.yaml")
-            )
+            os.path.exists(os.path.join(config.TESTS_DATA_PATH, "test_output.yaml"))
         )
 
     def test_dict_to_yaml_string(self):

@@ -131,7 +131,7 @@ class ResumePDFGenerator:
         for idx, job in enumerate(experiences):
             # Create a duration string from startdate and enddate
             duration = f"{job['titles'][0]['startdate']}-{job['titles'][0]['enddate']}"
-            if job['skip_name']:
+            if job["skip_name"]:
                 row_index = self._add_table_row(
                     table_data=table_data,
                     table_styles=table_styles,
@@ -141,7 +141,10 @@ class ResumePDFGenerator:
                             job["titles"][0]["name"],
                             resume_pdf_styles.PARAGRAPH_STYLES["company_title"],
                         ),
-                        (duration, resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                        (
+                            duration,
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_duration"],
+                        ),
                     ],
                 )
 
@@ -155,7 +158,10 @@ class ResumePDFGenerator:
                             job["company"],
                             resume_pdf_styles.PARAGRAPH_STYLES["company_heading"],
                         ),
-                        (duration, resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                        (
+                            duration,
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_duration"],
+                        ),
                     ],
                 )
 
@@ -226,27 +232,31 @@ class ResumePDFGenerator:
         for idx, project in enumerate(projects):
             project_name = project["name"]
             raw_link = project["link"]
-            clean_link = raw_link.replace("https://", "").replace("http://", "").replace("www.", "")
+            clean_link = (
+                raw_link.replace("https://", "")
+                .replace("http://", "")
+                .replace("www.", "")
+            )
             if project["show_link"]:
                 if project["hyperlink"]:
-                    hyperlink_text = '<a href="%s">%s</a>'%(raw_link, clean_link)
+                    hyperlink_text = '<a href="%s">%s</a>' % (raw_link, clean_link)
                     link_style = resume_pdf_styles.PARAGRAPH_STYLES["link"]
                 else:
                     hyperlink_text = clean_link
                     link_style = resume_pdf_styles.PARAGRAPH_STYLES["link-no-hyperlink"]
                 heading_style = resume_pdf_styles.PARAGRAPH_STYLES["company_heading"]
                 combined_style = ParagraphStyle(
-                    'combined_project_style',
+                    "combined_project_style",
                     parent=heading_style,
                     allowWidows=0,
-                    allowOrphans=0
+                    allowOrphans=0,
                 )
-                link_color_hex = '#' +link_style.textColor.hexval()[2:]
+                link_color_hex = "#" + link_style.textColor.hexval()[2:]
                 paragraph_text = (
                     f'<font name="{heading_style.fontName}" size="{heading_style.fontSize}">'
-                    f'{project_name}: </font>'
+                    f"{project_name}: </font>"
                     f'<font name="{link_style.fontName}" size="{link_style.fontSize}" color="{link_color_hex}">'
-                    f'{hyperlink_text}</font>'
+                    f"{hyperlink_text}</font>"
                 )
 
                 row_index = self._add_table_row(
@@ -254,11 +264,11 @@ class ResumePDFGenerator:
                     table_styles=table_styles,
                     row_index=row_index,
                     content_style_map=[
+                        (paragraph_text, combined_style),
                         (
-                            paragraph_text,
-                            combined_style
+                            project["date"],
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_duration"],
                         ),
-                        (project["date"], resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
                     ],
                 )
             else:
@@ -269,12 +279,14 @@ class ResumePDFGenerator:
                     content_style_map=[
                         (
                             project_name,
-                            resume_pdf_styles.PARAGRAPH_STYLES["company_heading"]
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_heading"],
                         ),
-                        (project["date"], resume_pdf_styles.PARAGRAPH_STYLES["company_duration"]),
+                        (
+                            project["date"],
+                            resume_pdf_styles.PARAGRAPH_STYLES["company_duration"],
+                        ),
                     ],
                 )
-
 
             for i, bullet_point in enumerate(project["highlights"]):
                 bullet_point = bullet_point.replace("'", "").replace('"', "").strip()
@@ -302,7 +314,6 @@ class ResumePDFGenerator:
                 )
 
         return row_index
-
 
     def add_education(self, table_data, table_styles, row_index, education):
         """
@@ -393,15 +404,17 @@ class ResumePDFGenerator:
         phone = data["basic"]["phone"]
 
         info = f"{email} | {phone}"
+
         def clean_url(url):
             return (
                 url.replace("https://", "").replace("http://", "").replace("www.", "")
             )
+
         for website in data["basic"]["websites"]:
-            info+=f" | {clean_url(website)}"
+            info += f" | {clean_url(website)}"
 
         address = data["basic"]["address"]
-        info+= f" | {address}"
+        info += f" | {address}"
         doc, pdf_location = resume_pdf_styles.generate_doc_template(
             name, job_data_location
         )
@@ -459,7 +472,9 @@ class ResumePDFGenerator:
                 span=True,
             )
         else:
-            config.logger.info("Objective not found; skipping objective section in PDF.")
+            config.logger.info(
+                "Objective not found; skipping objective section in PDF."
+            )
 
         # Add experience
         row_index = self.add_experiences(

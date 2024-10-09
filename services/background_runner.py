@@ -34,7 +34,7 @@ class BackgroundRunner:
         if not self.threads:
             self.logger.info("No tasks submitted.")
             return "No tasks submitted."
-        
+
         statuses = []
         for thread in self.threads:
             if thread.is_alive():
@@ -51,6 +51,7 @@ class BackgroundRunner:
         for thread in self.threads:
             if thread.is_alive():
                 # Python does not provide a direct way to kill threads.
-                self.logger.warning("Cannot directly stop threads. They will complete on their own.")
+                self.logger.warning(
+                    "Cannot directly stop threads. They will complete on their own."
+                )
         self.logger.info("All tasks stopped.")
-

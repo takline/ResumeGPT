@@ -12,13 +12,12 @@ from langchain_core.output_parsers import StrOutputParser
 from ..models.resume import (
     ResumeSkillsMatcherOutput,
     ResumeSummarizerOutput,
-    ResumeBulletPointRewriterOutput,
-    BulletPointImproverOutput,
 )
 import yaml
 from .. import utils
 from .. import config
 from .langchain_helpers import *
+from .bullet_points_processor import BulletPointsProcessor
 from ..prompts import Prompts
 from ..models.job_post import JobPost
 from ..pdf_generation import ResumePDFGenerator
@@ -327,17 +326,6 @@ class ResumeImprover:
             )
         return output_dict
 
-    def _chain_updater(self, prompt_msgs, pydantic_object) -> RunnableSequence:
-        """Create a chain based on the prompt messages.
-
-        Returns:
-            RunnableSequence: The chain for highlighting resume sections, matching skills, or improving resume content.
-        """
-        prompt = ChatPromptTemplate(messages=prompt_msgs)
-        llm = create_llm(**self.llm_kwargs)
-        runnable = prompt | llm.with_structured_output(schema=pydantic_object)
-        return runnable
-
     def _get_degrees(self, resume: dict):
         """Extract degrees from the resume.
 
@@ -385,131 +373,14 @@ class ResumeImprover:
             else:
                 l1.append(s)
 
-    def rewrite_bullet_points(self, projects=False) -> dict:
-        """Rewrite bullet points in the resume.
-
-        Args:
-            projects (bool): If True, update self.projects instead of self.experiences.
-
-        Returns:
-            dict: The rewritten bullet points.
-        """
-        bullet_point_chain = self._chain_updater(
-            prompt_msgs=Prompts.lookup["BULLET_POINT_REWRITER"],
-            pydantic_object=ResumeBulletPointRewriterOutput,
-        )
-        bullet_point_chain_inputs = self._get_formatted_chain_inputs(
-            chain=bullet_point_chain
-        )
-
-        target_list = self.projects if projects else self.experiences
-
-        for exp in target_list:
-            bullet_point_chain_inputs["draft"] = format_list_as_string(
-                exp["highlights"]
-            )
-            new_bullets = bullet_point_chain.invoke(bullet_point_chain_inputs).dict()[
-                "answer"
-            ]
-
-            new_bullets = sorted(new_bullets, key=lambda d: d["relevance"] * -1)
-            new_bullets = [s["highlight"] for s in new_bullets]
-            exp["highlights"] = new_bullets
-
-        with open(config.PROMPTS_YAML, "r") as file:
-            raw_prompts = yaml.safe_load(file)
-
-        prompt_template = raw_prompts["BULLET_POINT_IMPROVER"]
-        new_bullets = ""
-        new_tags = ""
-        for i, exp in enumerate(target_list):
-            bullet_point_chain_inputs[f"draft_{i}"] = format_list_as_string(
-                exp["highlights"]
-            )
-            new_tags += f", <draft_{i}>"
-            new_bullets += "\n<draft_%i>\n{draft_%i}\n</draft_%i>\n" % (i)
-            for ii in range(len(prompt_template)):
-                prompt_template[ii] = prompt_template[ii].replace(
-                    "PUT_BULLETS_HERE", new_bullets
-                )
-                prompt_template[ii] = prompt_template[ii].replace(
-                    "PUT_DRAFT_TAGS_HERE", f"({new_tags})"
-                )
-        prompt_template = Prompts.create_prompt_from_dict(prompt_template)
-        reviewer_chain = self._chain_updater(
-            prompt_msgs=prompt_template, pydantic_object=BulletPointImproverOutput
-        )
-        reviewed_bullets = reviewer_chain.invoke(bullet_point_chain_inputs).dict()
-        for i, exp in enumerate(reviewed_bullets["answer"]):
-            target_list[i]["highlights"] = exp["highlights"]
-        return "Done!"
-
-    def rewrite_bullet_points(self, projects=False) -> dict:
-        """Rewrite bullet points in the resume.
-
-        Args:
-            projects (bool): If True, update self.projects instead of self.experiences.
-
-        Returns:
-            dict: The rewritten bullet points.
-        """
-        bullet_point_chain = self._chain_updater(
-            prompt_msgs=Prompts.lookup["BULLET_POINT_REWRITER"],
-            pydantic_object=ResumeBulletPointRewriterOutput,
-        )
-        bullet_point_chain_inputs = self._get_formatted_chain_inputs(
-            chain=bullet_point_chain
-        )
-
-        target_list = self.projects if projects else self.experiences
-
-        for exp in target_list:
-            bullet_point_chain_inputs["draft"] = format_list_as_string(
-                exp["highlights"]
-            )
-            new_bullets = bullet_point_chain.invoke(bullet_point_chain_inputs).dict()[
-                "answer"
-            ]
-
-            new_bullets = sorted(new_bullets, key=lambda d: d["relevance"] * -1)
-            new_bullets = [s["highlight"] for s in new_bullets]
-            exp["highlights"] = new_bullets
-
-        with open(config.PROMPTS_YAML, "r") as file:
-            raw_prompts = yaml.safe_load(file)
-
-        prompt_template = raw_prompts["BULLET_POINT_IMPROVER"]
-        new_bullets = ""
-        new_tags = ""
-        for i, exp in enumerate(target_list):
-            bullet_point_chain_inputs[f"draft_{i}"] = format_list_as_string(
-                exp["highlights"]
-            )
-            new_tags += f", <draft_{i}>"
-            new_bullets += "\n<draft_%i>\n{draft_%i}\n</draft_%i>\n" % (i)
-            for ii in range(len(prompt_template)):
-                prompt_template[ii] = prompt_template[ii].replace(
-                    "PUT_BULLETS_HERE", new_bullets
-                )
-                prompt_template[ii] = prompt_template[ii].replace(
-                    "PUT_DRAFT_TAGS_HERE", f"({new_tags})"
-                )
-        prompt_template = Prompts.create_prompt_from_dict(prompt_template)
-        reviewer_chain = self._chain_updater(
-            prompt_msgs=prompt_template, pydantic_object=BulletPointImproverOutput
-        )
-        reviewed_bullets = reviewer_chain.invoke(bullet_point_chain_inputs).dict()
-        for i, exp in enumerate(reviewed_bullets["answer"]):
-            target_list[i]["highlights"] = exp["highlights"]
-        return "Done!"
-
     def rewrite_unedited_experiences(self) -> dict:
         """Rewrite unedited experiences in the resume.
 
         Returns:
             dict: The rewritten experiences.
         """
-        self.rewrite_bullet_points()
+        processor = BulletPointsProcessor(self.experiences, self.llm_kwargs)
+        self.projects = processor.rewrite_bullet_points()
         return self.experiences
 
     def rewrite_unedited_projects(self) -> dict:
@@ -518,7 +389,8 @@ class ResumeImprover:
         Returns:
             dict: The rewritten projects.
         """
-        self.rewrite_bullet_points(projects=True)
+        processor = BulletPointsProcessor(self.projects, self.llm_kwargs)
+        self.projects = processor.rewrite_bullet_points()
         return self.projects
 
     def extract_matched_skills(self) -> dict:
@@ -528,8 +400,10 @@ class ResumeImprover:
             dict: The extracted skills.
         """
 
-        chain = self._chain_updater(
-            Prompts.lookup["SKILLS_MATCHER"], ResumeSkillsMatcherOutput
+        chain = chain_updater(
+            Prompts.lookup["SKILLS_MATCHER"],
+            ResumeSkillsMatcherOutput,
+            **self.llm_kwargs,
         )
         chain_inputs = self._get_formatted_chain_inputs(chain=chain)
         extracted_skills = chain.invoke(chain_inputs).dict()
@@ -557,7 +431,7 @@ class ResumeImprover:
         Returns:
             dict: The written objective.
         """
-        chain = self._chain_updater(
+        chain = chain_updater(
             Prompts.lookup["OBJECTIVE_WRITER"], ResumeSummarizerOutput
         )
 

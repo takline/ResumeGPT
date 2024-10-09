@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any, Optional
 from dateutil import parser as dateparser
 from dateutil.relativedelta import relativedelta
 from langchain_openai import ChatOpenAI
@@ -7,6 +7,8 @@ import langchain
 from langchain_community.cache import InMemoryCache
 from .. import config
 from .. import utils
+from langchain_core.runnables import RunnableSequence
+from langchain.prompts import ChatPromptTemplate
 
 # Set up LLM cache
 langchain.llm_cache = InMemoryCache()
@@ -20,18 +22,33 @@ def create_llm(**kwargs):
     return chat_model(**kwargs)
 
 
-def format_list_as_string(lst: list, list_sep: str = "\n- ") -> str:
-    """Format a list as a string with a specified separator."""
-    if isinstance(lst, list):
-        return list_sep + list_sep.join(lst)
-    return str(lst)
+def chain_updater(
+    prompt_msgs: Any, pydantic_object: Any, llm_kwargs: Dict[str, Any] = None
+) -> RunnableSequence:
+    """
+    Create a chain based on the prompt messages.
 
+    Args:
+        prompt_msgs (Any): The prompt messages.
+        pydantic_object (Any): The Pydantic schema for structured output.
+        llm_kwargs (Dict[str, Any], optional): Keyword arguments for the language model. Defaults to None.
+
+    Returns:
+        RunnableSequence: The chain for processing bullet points.
+    """
+    prompt = ChatPromptTemplate(messages=prompt_msgs)
+    llm_kwargs = llm_kwargs if llm_kwargs is not None else {}
+    llm = create_llm(**llm_kwargs)
+    runnable = prompt | llm.with_structured_output(schema=pydantic_object)
+    return runnable
 
 
 def format_prompt_inputs_as_strings(prompt_inputs: list[str], **kwargs):
     """Convert values to string for all keys in kwargs matching list in prompt inputs."""
     return {
-        k: format_list_as_string(v) for k, v in kwargs.items() if k in prompt_inputs
+        k: utils.format_list_as_string(v)
+        for k, v in kwargs.items()
+        if k in prompt_inputs
     }
 
 
@@ -72,16 +89,16 @@ def chain_formatter(format_type: str, input_data) -> str:
     Returns:
         str: The formatted data as a string.
     """
-    if format_type == 'experience':
+    if format_type == "experience":
         as_list = format_experiences_for_prompt(input_data)
         return format_prompt_inputs_as_strings(as_list)
-    elif format_type == 'projects':
+    elif format_type == "projects":
         as_list = format_projects_for_prompt(input_data)
         return format_prompt_inputs_as_strings(as_list)
-    elif format_type == 'skills':
+    elif format_type == "skills":
         as_list = format_skills_for_prompt(input_data)
         return format_prompt_inputs_as_strings(as_list)
-    elif format_type == 'education':
+    elif format_type == "education":
         return format_education_for_resume(input_data)
     else:
         return input_data
@@ -98,10 +115,12 @@ def format_education_for_resume(education_list: list[dict]) -> str:
     """
     formatted_education = []
     for entry in education_list:
-        school = entry.get('school', '')
-        degrees = ', '.join(degree.get('names', ['Degree'])[0] for degree in entry.get('degrees', []))
+        school = entry.get("school", "")
+        degrees = ", ".join(
+            degree.get("names", ["Degree"])[0] for degree in entry.get("degrees", [])
+        )
         formatted_education.append(f"{school}: {degrees}")
-    return '\n'.join(formatted_education)
+    return "\n".join(formatted_education)
 
 
 def format_skills_for_prompt(input_data) -> list:
@@ -124,6 +143,7 @@ def format_skills_for_prompt(input_data) -> list:
             result.append(curr)
     return result
 
+
 def get_cumulative_time_from_titles(titles) -> int:
     """Calculate the cumulative time from job titles.
 
@@ -143,6 +163,7 @@ def get_cumulative_time_from_titles(titles) -> int:
         result += datediff_years(start_date=t["startdate"], end_date=last_date)
     return round(result)
 
+
 def format_experiences_for_prompt(input_data) -> list:
     """Format experiences for inclusion in a prompt.
 
@@ -156,10 +177,11 @@ def format_experiences_for_prompt(input_data) -> list:
             exp_time = get_cumulative_time_from_titles(exp["titles"])
             curr += f"{exp_time} years experience in:"
         if "highlights" in exp:
-            curr += format_list_as_string(exp["highlights"], list_sep="\n  - ")
+            curr += utils.format_list_as_string(exp["highlights"], list_sep="\n  - ")
             curr += "\n"
             result.append(curr)
     return result
+
 
 def format_projects_for_prompt(input_data) -> list:
     """Format projects for inclusion in a prompt.
@@ -174,7 +196,7 @@ def format_projects_for_prompt(input_data) -> list:
             name = exp["name"]
             curr += f"Side Project: {name}"
         if "highlights" in exp:
-            curr += format_list_as_string(exp["highlights"], list_sep="\n  - ")
+            curr += utils.format_list_as_string(exp["highlights"], list_sep="\n  - ")
             curr += "\n"
             result.append(curr)
     return result

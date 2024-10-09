@@ -3,8 +3,6 @@ import os
 from langchain_openai import ChatOpenAI
 import shutil
 
-# Initialize logger
-logger = logging.getLogger(__name__)
 
 # Your resume filename here:
 YOUR_RESUME_NAME = "sample_resume.yaml"
@@ -44,9 +42,11 @@ def ensure_openai_api_key():
 
 ensure_openai_api_key()
 
+
 def command_exists(command):
     """Check if a command exists on the system."""
     return shutil.which(command) is not None
+
 
 def get_open_file_command():
     """Determine the appropriate command to open files."""
@@ -64,4 +64,51 @@ def get_open_file_command():
             return full_cmd
     return ""
 
+
 OPEN_FILE_COMMAND = get_open_file_command()
+
+
+def setup_logger(
+    name: str,
+    level: int = logging.DEBUG,
+    log_to_file: bool = True,
+    log_to_console: bool = True,
+) -> logging.Logger:
+    """
+    Set up a logger with specified logging level and handlers.
+
+    Args:
+        name (str): The name of the logger.
+        level (int): The logging level (e.g., logging.DEBUG, logging.INFO).
+        log_to_file (bool): Whether to log messages to a file.
+        log_to_console (bool): Whether to log messages to the console.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    # Define logging format
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
+    if log_to_file:
+        # Create a file handler
+        log_file_path = os.path.join(PROJECT_PATH, "resumegpt.log")
+        file_handler = logging.FileHandler(log_file_path)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    if log_to_console:
+        # Create a stream handler
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
+    return logger
+
+
+# Initialize logger with default settings
+logger = setup_logger(name=f"ResumeGPT.{__name__}", log_to_console=False)

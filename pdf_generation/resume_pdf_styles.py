@@ -21,7 +21,8 @@ def generate_doc_template(name, job_data_location):
         tuple: A tuple containing the document template for the resume PDF and the PDF location.
     """
     import re
-    author_name_formatted = re.sub(r'\W+', '_', name) + "_resume"
+
+    author_name_formatted = re.sub(r"\W+", "_", name) + "_resume"
     pdf_location = os.path.join(job_data_location, f"{author_name_formatted}.pdf")
     doc = SimpleDocTemplate(
         pdf_location,
@@ -93,15 +94,15 @@ PARAGRAPH_STYLES = {
         leading=12,
     ),
     "link": ParagraphStyle(
-        name='Hyperlink',
+        name="Hyperlink",
         fontName=FONT_NAMES["regular"],
         fontSize=11,
-        parent=sample_style_sheets['BodyText'],
+        parent=sample_style_sheets["BodyText"],
         textColor=colors.blue,
         underline=True,
     ),
     "link-no-hyperlink": ParagraphStyle(
-        name='Hyperlink',
+        name="Hyperlink",
         fontName=FONT_NAMES["regular"],
         fontSize=11,
     ),

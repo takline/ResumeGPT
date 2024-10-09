@@ -22,7 +22,7 @@ setup(
         "free-proxy>=1.1.1",
         "Jinja2==3.1.4",
         "PyYAML==5.3.1",
-        "pytest-cov==5.0.0"
+        "pytest-cov==5.0.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
