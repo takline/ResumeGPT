@@ -1,56 +1,87 @@
+"""
+Provides functionality to validate the structure and data types of a resume YAML file.
+
+This module defines `check_resume_format`, which compares a given resume YAML
+against a predefined schema. It identifies discrepancies such as missing keys,
+incorrect data types, or structural mismatches, and logs detailed error messages
+with example snippets to guide the user in correcting their resume format.
+"""
 import yaml
+from typing import Any, Dict, List, Tuple, Union # Ensure all necessary types are imported
 from .. import config
 
+# Logger for this module
+logger = config.logger # Use the central logger from config
+
 def check_resume_format(yaml_file_path: str) -> bool:
-    """Check if the resume format is correct and provide suggestions for corrections.
+    """
+    Checks if the resume YAML file at `yaml_file_path` conforms to an expected format.
+
+    The function validates the presence of required keys and the types of their values
+    against a predefined schema. If discrepancies are found, it logs detailed error
+    messages, including example snippets for guidance, and returns False.
 
     Args:
-        yaml_file_path (str): The path to the resume YAML file.
+        yaml_file_path (str): The path to the resume YAML file to be validated.
 
     Returns:
-        bool: True if the format is correct, False otherwise.
+        bool: True if the resume format is correct according to the schema, False otherwise.
+              Detailed errors are logged via `config.logger`.
     """
-    expected_format = {
-        "editing": bool,
-        "debug": bool,
-        "basic": {
+    # Defines the expected structure and types for the resume YAML.
+    # This schema is used by the recursive `validate_format` function.
+    expected_format: Dict[str, Any] = {
+        "editing": bool,  # Flag to indicate if user is still editing
+        "debug": bool,    # Debug mode flag
+        "basic": {        # Basic personal information
             "name": str,
             "address": str,
             "email": str,
             "phone": str,
-            "websites": [str],
+            "websites": [str], # List of website URLs
         },
-        "objective": str,
-        "education": [{"school": str, "degrees": [{"names": [str]}]}],
-        "experiences": [
+        "objective": str, # Career objective statement
+        "education": [    # List of educational qualifications
+            {
+                "school": str,
+                "degrees": [{"names": [str]}] # Each degree can have multiple names (e.g., "M.S.", "Master of Science")
+            }
+        ],
+        "experiences": [  # List of work experiences
             {
                 "company": str,
-                "skip_name": bool,
+                "skip_name": bool, # If true, company name might be omitted in some PDF layouts if title is primary
                 "location": str,
-                "titles": [
+                "titles": [       # Each experience can have multiple roles/titles
                     {
-                        "name": str,
-                        "startdate": (int, str),  # startdate can be int or str
-                        "enddate": (int, str),  # enddate can be int or str
+                        "name": str,       # Title name
+                        "startdate": (int, str),  # Start date (year as int or string like "Month YYYY")
+                        "enddate": (int, str),    # End date (similar to startdate, or "Present")
                     }
                 ],
-                "highlights": [str],
+                "highlights": [str], # List of achievements/responsibilities
             }
         ],
-        "projects": [
+        "projects": [     # List of personal or academic projects
             {
                 "name": str,
-                "hyperlink": bool,
-                "show_link": bool,
-                "date": str,
-                "link": str,
-                "highlights": [str],
+                "hyperlink": bool,   # Whether the link should be an active hyperlink in the PDF
+                "show_link": bool,   # Whether to display the link text in the PDF
+                "date": str,         # Project completion date or duration
+                "link": str,         # URL to the project
+                "highlights": [str], # List of project details/achievements
             }
         ],
-        "skills": [{"category": str, "skills": [str]}],
+        "skills": [       # List of skill categories
+            {
+                "category": str,   # e.g., "Programming Languages", "Software"
+                "skills": [str]    # List of skills in that category
+            }
+        ],
     }
     
-    example_snippets = {
+    # Provides example YAML snippets for error messages to guide the user.
+    example_snippets: Dict[str, str] = {
         "editing": "editing: true",
         "debug": "debug: false",
         "basic": """basic:
@@ -77,146 +108,139 @@ def check_resume_format(yaml_file_path: str) -> bool:
     location: San Francisco, CA
     titles:
       - name: Lead Software Engineer
-        startdate: 2022
-        enddate: 2024
+        startdate: 2022 # Can be integer for year
+        enddate: "Present" # Or string for "Month YYYY" or "Present"
     highlights:
       - Led the development of a cloud-based platform, increasing user engagement by 50%.
-      - Implemented a microservices architecture, reducing system downtime by 30%.
-      - Mentored a team of junior developers, fostering a culture of continuous learning and improvement.
-      - Spearheaded the integration of AI-driven features, enhancing product capabilities and user satisfaction.""",
+      - Implemented a microservices architecture, reducing system downtime by 30%.""",
       "projects":"""projects:
 - name: Example Github Project
   link: https://www.github.com/username/project
-  date: Jan 2024
-  hyperlink: false
-  show_link: false
+  date: "Jan 2024 - Mar 2024" # Or just "2023"
+  hyperlink: true
+  show_link: true
   highlights:
-      - Developed a full-stack web application using React and Node.js, showcasing a dynamic portfolio with real-time updates.
-      - Implemented CI/CD pipelines using GitHub Actions, ensuring seamless deployment and integration.
-      - Integrated third-party APIs for enhanced functionality, including payment processing and social media sharing.
-      - Wrote comprehensive documentation and unit tests, ensuring code quality and ease of collaboration.
-      - Conducted code reviews and collaborated with open-source contributors, fostering a community-driven development process.
-      - Achieved over 1,000 stars on GitHub, demonstrating the project's popularity and utility within the developer community.""",
+      - Developed a full-stack web application using React and Node.js.""",
         "skills": """skills:
   - category: Technical
     skills:
       - JavaScript
       - Python
-      - AWS
-      - Docker
-      - Kubernetes
-      - React
-      - Node.js
-      - Microservices
-      - CI/CD
-      - SQL
-      - NoSQL
-      - REST APIs
   - category: Non-technical
     skills:
-      - Strong problem-solving skills
-      - Excellent communication
-      - Team leadership
-      - Project management
-      - Agile methodologies"""
+      - Strong problem-solving skills"""
     }
     
-    def validate_format(actual, expected, path=""):
-        """Recursively validate the format of the actual YAML content against the expected format.
+    def validate_format(actual_data: Any, expected_data_format: Any, current_path: str = "") -> List[Tuple[str, str, str]]:
+        """
+        Recursively validates the format of `actual_data` against `expected_data_format`.
 
         Args:
-            actual (Any): The actual content from the YAML file.
-            expected (Any): The expected format to validate against.
-            path (str, optional): The current path in the YAML structure. Defaults to "".
+            actual_data (Any): The data segment from the user's YAML to validate.
+            expected_data_format (Any): The corresponding segment from the `expected_format` schema.
+            current_path (str, optional): The current dot-separated path in the YAML structure, for error reporting.
 
         Returns:
-            list: A list of errors found during validation.
+            List[Tuple[str, str, str]]: A list of error tuples. Each tuple contains:
+                                        (path_to_error, expected_type_name, actual_type_name_or_status)
+                                        Status can be "missing" if a key is absent.
         """
-        if isinstance(expected, dict):
-            if not isinstance(actual, dict):
-                return [(path, "dict", type(actual).__name__)]
-            errors = []
-            for key, expected_type in expected.items():
-                if key not in actual:
-                    errors.append((f"{path}/{key}", expected_type, "missing"))
+        errors_found: List[Tuple[str, str, str]] = []
+
+        if isinstance(expected_data_format, dict): # If schema expects a dictionary
+            if not isinstance(actual_data, dict):
+                return [(current_path, "dictionary", type(actual_data).__name__)]
+
+            for key, expected_type_for_key in expected_data_format.items():
+                new_path = f"{current_path}/{key}" if current_path else key
+                if key not in actual_data:
+                    # Key is missing in the user's YAML
+                    errors_found.append((new_path, str(expected_type_for_key), "missing"))
                 else:
-                    errors.extend(validate_format(actual[key], expected_type, f"{path}/{key}"))
-            return errors
-        elif isinstance(expected, list):
-            if not isinstance(actual, list):
-                return [(path, "list", type(actual).__name__)]
-            if len(expected) == 0:
-                return []  # No specific type to check against
-            errors = []
-            for index, item in enumerate(actual):
-                errors.extend(validate_format(item, expected[0], f"{path}[{index}]"))
-            return errors
-        else:
-            if not isinstance(actual, expected):
-                return [(path, expected.__name__, type(actual).__name__)]
+                    # Key exists, validate its content recursively
+                    errors_found.extend(validate_format(actual_data[key], expected_type_for_key, new_path))
+            return errors_found
+
+        elif isinstance(expected_data_format, list): # If schema expects a list
+            if not isinstance(actual_data, list):
+                return [(current_path, "list", type(actual_data).__name__)]
+            if not expected_data_format: # If schema expects an empty list (e.g. "websites": [])
+                return [] # No specific type to check for items, an empty list is valid
+
+            # Validate each item in the actual list against the first item in the expected format list (schema for list items)
+            expected_item_format = expected_data_format[0]
+            for index, item_in_actual_list in enumerate(actual_data):
+                errors_found.extend(validate_format(item_in_actual_list, expected_item_format, f"{current_path}[{index}]"))
+            return errors_found
+
+        elif isinstance(expected_data_format, tuple): # If schema expects one of multiple types (e.g., (int, str) for dates)
+             if not isinstance(actual_data, expected_data_format):
+                expected_type_names = ", ".join([t.__name__ for t in expected_data_format])
+                return [(current_path, f"one of ({expected_type_names})", type(actual_data).__name__)]
+             return []
+
+        else: # If schema expects a single specific type (e.g., str, bool)
+            if not isinstance(actual_data, expected_data_format): # type: ignore
+                return [(current_path, expected_data_format.__name__, type(actual_data).__name__)]
             return []
 
-    with open(yaml_file_path, "r") as file:
-        actual_yaml_dict = yaml.safe_load(file)
+    try:
+        with open(yaml_file_path, "r", encoding="utf-8") as file: # Added encoding
+            actual_yaml_dict = yaml.safe_load(file)
+        if not actual_yaml_dict: # Handle empty YAML file
+             logger.error(f"Resume YAML file is empty or invalid: {yaml_file_path}")
+             return False
+    except FileNotFoundError:
+        logger.error(f"Resume YAML file not found: {yaml_file_path}", exc_info=True)
+        return False # Or re-raise
+    except yaml.YAMLError as e:
+        logger.error(f"Error parsing resume YAML file {yaml_file_path}: {e}", exc_info=True)
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error reading resume YAML file {yaml_file_path}: {e}", exc_info=True)
+        return False
 
-    errors = validate_format(actual_yaml_dict, expected_format)
 
-    def get_example_snippet(path):
-        """Retrieve an example snippet for a given path.
+    validation_errors = validate_format(actual_yaml_dict, expected_format)
 
-        Args:
-            path (str): The path in the YAML structure.
+    def get_example_snippet(path_key: str) -> Optional[str]:
+        """Retrieve an example snippet for a given top-level or nested key."""
+        # Try direct match first (e.g. "basic/name")
+        if path_key in example_snippets:
+            return example_snippets[path_key]
+        # Try top-level key if nested path_key not found
+        top_level_key = path_key.split('/')[0].split('[')[0]
+        return example_snippets.get(top_level_key)
 
-        Returns:
-            str: An example snippet corresponding to the path.
-        """
-        key = path.split('/')[1]
-        key = key.split('[')[0]
-        return example_snippets.get(key, None)
+    # Consolidate errors for more user-friendly logging
+    if validation_errors:
+        error_log_messages = ["Resume format validation failed with the following issues:"]
+        # Group errors by the main section (first part of the path)
+        grouped_errors: Dict[str, List[str]] = {}
+        for path, expected, actual_or_status in validation_errors:
+            main_section_key = path.split('/')[0].split('[')[0] # e.g., "experiences" from "experiences[0]/company"
 
-    consolidated_errors = {}
-
-    for error in errors:
-        path, expected, actual = error
-        main_key = path.split('/')[1]
-        sub_key = path.split('/')[-1]
-        if main_key not in consolidated_errors:
-            consolidated_errors[main_key] = {"missing": [], "incorrect": [], "entries": []}
-        
-        if main_key == "experiences":
-            entry_index = path.split('/')[2].split('[')[-1][:-1]
-            consolidated_errors[main_key]["entries"].append(f"experiences[{entry_index}]")
+            error_detail = ""
+            if actual_or_status == "missing":
+                error_detail = f"  - Key '{path}' is missing. Expected type: {expected}."
+            else:
+                error_detail = f"  - Key '{path}' has incorrect type. Expected: {expected}, Got: {actual_or_status}."
             
-        if main_key == "projects":
-            entry_index = path.split('/')[2].split('[')[-1][:-1]
-            consolidated_errors[main_key]["entries"].append(f"projects[{entry_index}]")
+            if main_section_key not in grouped_errors:
+                grouped_errors[main_section_key] = []
+            grouped_errors[main_section_key].append(error_detail)
+
+        for section, section_errors in grouped_errors.items():
+            error_log_messages.append(f"\nIn section '{section}':")
+            error_log_messages.extend(section_errors)
+            snippet = get_example_snippet(section)
+            if snippet:
+                error_log_messages.append(f"  Example format for '{section}':\n```yaml\n{snippet}\n```")
         
-        if actual == "missing":
-            consolidated_errors[main_key]["missing"].append(sub_key)
-        elif isinstance(expected, str):
-            consolidated_errors[main_key]["incorrect"].append((sub_key, actual, expected))
-        else:
-            consolidated_errors[main_key]["incorrect"].append((sub_key, actual, expected.__name__))
-    logger_error = ""
-    if consolidated_errors:
-        for main_key, issues in consolidated_errors.items():
-            example_snippet = get_example_snippet(f"/{main_key}")
-            if main_key == "experiences" and issues["entries"]:
-                entries = ", ".join(set(issues["entries"]))
-                logger_error+=f"\nYou have formatting errors in these experiences entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
-            if main_key == "projects" and issues["entries"]:
-                entries = ", ".join(set(issues["entries"]))
-                logger_error+=f"\nYou have formatting errors in these projects entries: '{entries}'. Make sure they are formatted like this example:\n\n```yaml\n{example_snippet}\n```"
-            if issues["missing"]:
-                missing_keys = ", ".join(issues["missing"])
-                if main_key=="projects":
-                    logger_error+="The 'Projects' section is currently empty. This is not an issue, but just an FYI for your awareness."
-                else:
-                    logger_error+=f"\nYou are missing these keys: '{missing_keys}' in the '{main_key}' section. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
-            if issues["incorrect"]:
-                for sub_key, actual_type, expected_type in issues["incorrect"]:
-                    logger_error+=f"The value for '{sub_key}' in the '{main_key}' section is of type '{actual_type}'. \nExpected type: '{expected_type}'. Make sure it is formatted like this example:\n\n```yaml\n{example_snippet}\n```"
-        config.logger.error(logger_error)
+        logger.error("\n".join(error_log_messages))
         return False
     else:
+        logger.info(f"Resume format check passed for {yaml_file_path}.")
         return True
+
+[end of utils/resume_format_checker.py]

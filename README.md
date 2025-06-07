@@ -73,6 +73,22 @@ cd ResumeGPT
 pip install -r requirements.txt
 ```
 
+## API Key Configuration
+
+ResumeGPT requires an OpenAI API key to function. The application will look for the API key in the following order:
+
+1.  **Environment Variable (Recommended):** Set the `OPENAI_API_KEY` environment variable. This is the most secure and recommended method.
+    ```bash
+    export OPENAI_API_KEY="your_openai_api_key_here"
+    ```
+    On Windows, you can set it via System Properties or using `set OPENAI_API_KEY="your_openai_api_key_here"` in Command Prompt (for the current session) or `[Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "your_openai_api_key_here", "User")` in PowerShell for a persistent user-level variable.
+
+2.  **User Input:** If the `OPENAI_API_KEY` environment variable is not found, the application will prompt you to enter the API key when it first needs to make an API call.
+
+**Important:**
+*   Your OpenAI API key is sensitive information. **Keep it confidential.**
+*   Setting the key as an environment variable is best practice for security and convenience, especially for development or server deployments. Avoid hardcoding the key directly into scripts or version-controlled files.
+
 ## Usage
 
  - Add your resume to `ResumeGPT/data/sample_resume.yaml` (make sure `ResumeGPT.config.YOUR_RESUME_NAME` is set to your resume filename in the `.data/` folder)

@@ -1,3 +1,11 @@
+"""
+Core PDF generation class using ReportLab.
+
+This module defines `ResumePDFGenerator`, which takes structured resume data
+(typically a Python dictionary) and uses the ReportLab toolkit to construct
+a professional-looking PDF document. It handles layout, styling, and content
+placement for various resume sections like experiences, projects, education, and skills.
+"""
 import configparser
 import json
 import os
